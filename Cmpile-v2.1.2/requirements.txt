@@ -1,5 +1,0 @@
-requests
-rich
-customtkinter
-packaging
-Pillow
