@@ -29,8 +29,11 @@ class App(ctk.CTk):
         self.add_file_btn = ctk.CTkButton(self.sidebar_frame, text="Add Files", command=self.add_files)
         self.add_file_btn.grid(row=1, column=0, padx=20, pady=10)
 
+        self.add_folder_btn = ctk.CTkButton(self.sidebar_frame, text="Add Folder", command=self.add_folder)
+        self.add_folder_btn.grid(row=2, column=0, padx=20, pady=10)
+
         self.clear_btn = ctk.CTkButton(self.sidebar_frame, text="Clear List", fg_color="transparent", border_width=2, command=self.clear_files)
-        self.clear_btn.grid(row=2, column=0, padx=20, pady=10)
+        self.clear_btn.grid(row=3, column=0, padx=20, pady=10)
 
         self.quit_button = ctk.CTkButton(self.sidebar_frame, text="Quit", fg_color="transparent", border_width=2, command=self.quit)
         self.quit_button.grid(row=5, column=0, padx=20, pady=10, sticky="s")
@@ -75,6 +78,13 @@ class App(ctk.CTk):
             for f in files:
                 if f not in self.source_files:
                     self.source_files.append(f)
+            self.refresh_file_list()
+
+    def add_folder(self):
+        folder = filedialog.askdirectory()
+        if folder:
+            if folder not in self.source_files:
+                self.source_files.append(folder)
             self.refresh_file_list()
 
     def clear_files(self):
