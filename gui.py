@@ -116,6 +116,9 @@ class App(ctk.CTk):
         self.install_all_btn = ctk.CTkButton(ctrl_frame, text="Install All Extensions", command=self.install_all_extensions)
         self.install_all_btn.pack(side="right")
 
+        self.add_custom_btn = ctk.CTkButton(ctrl_frame, text="Add Custom Extension", fg_color="gray", command=self.add_custom_extension_dialog)
+        self.add_custom_btn.pack(side="right", padx=10)
+
         # List of Extensions
         self.ext_scroll_frame = ctk.CTkScrollableFrame(tab, label_text="Available Extensions")
         self.ext_scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -191,6 +194,73 @@ class App(ctk.CTk):
             self.after(0, self.refresh_extension_list)
         except Exception as e:
             self.log_message(str(e), "error")
+
+    def add_custom_extension_dialog(self):
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Add Custom Extension")
+        dialog.geometry("500x400")
+        
+        # Make modal
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        ctk.CTkLabel(dialog, text="Add Custom Extension", font=("Arial", 18, "bold")).pack(pady=10)
+        
+        # Name
+        ctk.CTkLabel(dialog, text="Extension Name:").pack(anchor="w", padx=20)
+        name_entry = ctk.CTkEntry(dialog)
+        name_entry.pack(fill="x", padx=20, pady=(0, 10))
+        
+        # Include Path
+        ctk.CTkLabel(dialog, text="Include Path (Folder containing headers):").pack(anchor="w", padx=20)
+        inc_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        inc_frame.pack(fill="x", padx=20, pady=(0, 10))
+        inc_entry = ctk.CTkEntry(inc_frame)
+        inc_entry.pack(side="left", fill="x", expand=True)
+        def browse_inc():
+            p = filedialog.askdirectory()
+            if p:
+                inc_entry.delete(0, "end")
+                inc_entry.insert(0, p)
+        ctk.CTkButton(inc_frame, text="Browse", width=60, command=browse_inc).pack(side="right", padx=(10, 0))
+        
+        # Lib Path
+        ctk.CTkLabel(dialog, text="Library Path (Folder containing .a/.lib):").pack(anchor="w", padx=20)
+        lib_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        lib_frame.pack(fill="x", padx=20, pady=(0, 10))
+        lib_entry = ctk.CTkEntry(lib_frame)
+        lib_entry.pack(side="left", fill="x", expand=True)
+        def browse_lib():
+            p = filedialog.askdirectory()
+            if p:
+                lib_entry.delete(0, "end")
+                lib_entry.insert(0, p)
+        ctk.CTkButton(lib_frame, text="Browse", width=60, command=browse_lib).pack(side="right", padx=(10, 0))
+        
+        # Flags
+        ctk.CTkLabel(dialog, text="Linker Flags (e.g. -lraylib -lgdi32):").pack(anchor="w", padx=20)
+        flags_entry = ctk.CTkEntry(dialog)
+        flags_entry.pack(fill="x", padx=20, pady=(0, 20))
+        
+        def submit():
+            name = name_entry.get().strip()
+            inc = inc_entry.get().strip()
+            lib = lib_entry.get().strip()
+            flags_str = flags_entry.get().strip()
+            
+            if not name or not inc or not lib:
+                self.log_message("Error: Name, Include Path, and Lib Path are required.", "error")
+                return
+            
+            flags = flags_str.split()
+            
+            ext = extensions.CustomExtension(name, inc, lib, flags)
+            self.extension_manager.add_extension(ext)
+            self.refresh_extension_list()
+            self.log_message(f"Custom extension '{name}' added.", "success")
+            dialog.destroy()
+            
+        ctk.CTkButton(dialog, text="Add Extension", command=submit, fg_color="green").pack(pady=10)
 
     def add_files(self):
         files = filedialog.askopenfilenames(filetypes=[("C/C++ Files", "*.c *.cpp *.h *.hpp")])

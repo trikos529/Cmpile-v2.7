@@ -8,8 +8,11 @@ import stat
 import time
 import download_script
 
+import json
+
 # Use a dedicated directory for extensions
 EXTENSIONS_DIR = os.path.join(os.getcwd(), "extensions")
+CUSTOM_EXTENSIONS_FILE = os.path.join(EXTENSIONS_DIR, "custom_extensions.json")
 
 class Extension:
     def __init__(self, name):
@@ -412,10 +415,50 @@ class OpenCVExtension(Extension):
              # For now return the priority list + extensive system libs
              libs = found_libs
         
-        # System libs for OpenCV on Windows
         if os.name == 'nt':
              libs.extend(["-lgdi32", "-lcomdlg32", "-lole32", "-luuid"])
         return libs
+
+class CustomExtension(Extension):
+    def __init__(self, name, include_path, lib_path, flags):
+        super().__init__(name)
+        self.include_path = include_path
+        self.lib_path = lib_path
+        self.flags = flags  # List of flags
+        self.path = include_path # Rough approximation
+        self.installed = True # Custom extensions are assumed installed
+
+    def is_installed(self):
+        return os.path.isdir(self.include_path) and os.path.isdir(self.lib_path)
+
+    def install(self, progress_callback=None):
+        if progress_callback: progress_callback(f"Custom extension '{self.name}' is manually managed.")
+
+    def get_include_path(self):
+        return self.include_path
+
+    def get_lib_path(self):
+        return self.lib_path
+    
+    def get_link_flags(self):
+        return self.flags
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "include_path": self.include_path,
+            "lib_path": self.lib_path,
+            "flags": self.flags
+        }
+
+    @staticmethod
+    def from_dict(data):
+        return CustomExtension(
+            data["name"],
+            data["include_path"],
+            data["lib_path"],
+            data["flags"]
+        )
 
 class ExtensionManager:
     def __init__(self):
@@ -423,6 +466,37 @@ class ExtensionManager:
             "raylib": RaylibExtension(),
             "opencv": OpenCVExtension()
         }
+        self.load_custom_extensions()
+
+    def load_custom_extensions(self):
+        if os.path.exists(CUSTOM_EXTENSIONS_FILE):
+            try:
+                with open(CUSTOM_EXTENSIONS_FILE, 'r') as f:
+                    data = json.load(f)
+                    for ext_data in data:
+                        ext = CustomExtension.from_dict(ext_data)
+                        self.extensions[ext.name] = ext
+            except Exception as e:
+                print(f"Failed to load custom extensions: {e}")
+
+    def save_custom_extensions(self):
+        custom_exts = [
+            ext.to_dict() for ext in self.extensions.values() 
+            if isinstance(ext, CustomExtension)
+        ]
+        if not os.path.exists(EXTENSIONS_DIR):
+            os.makedirs(EXTENSIONS_DIR)
+            
+        try:
+            with open(CUSTOM_EXTENSIONS_FILE, 'w') as f:
+                json.dump(custom_exts, f, indent=4)
+        except Exception as e:
+            print(f"Failed to save custom extensions: {e}")
+
+    def add_extension(self, extension):
+        self.extensions[extension.name] = extension
+        if isinstance(extension, CustomExtension):
+            self.save_custom_extensions()
 
     def get_extension(self, name):
         return self.extensions.get(name)
