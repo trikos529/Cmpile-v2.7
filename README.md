@@ -1,60 +1,67 @@
-# PowerNote 🚀
+# Cmpile V2
 
-PowerNote is a modern, all-in-one productivity and learning ecosystem designed to streamline your notes, tasks, and creative ideas. It combines powerful organization tools with AI-driven learning features and a fully customizable interface.
+**Cmpile V2** is a zero-configuration C/C++ build tool written in Python. It automatically handles compiler installation (Clang/MinGW) and dependency management (vcpkg) for you.
 
-## ✨ Key Features
+## Quick Start
 
-### 📂 Advanced Organization
-- **Smart Folders**: Organize your work with nested folders, custom color-coding, and easy renaming.
-- **Drag & Drop**: Seamlessly move files and folders to restructure your workspace.
-- **Search**: Global debounced search to find any note, task, or file instantly.
+ You only need Python 3 installed.
+ 
+  Install Dependencies: Run pip install -r requirements.txt.
+  
+  Install PyInstaller: Run pip install pyinstaller.
+  
+  Build: Run pyinstaller CmpileGUI.spec
+  
+On the first run, Cmpile will:
+- Download a portable C++ compiler (LLVM-Mingw).
+- Download and set up `vcpkg` for library management.
+- Download and add Git to PATH for cloning other dependencies.
+- Download and add Cmake to PATH for building dependencies and extensions.
+- Detect any `#include` libraries in your code (e.g., `#include <nlohmann/json.hpp>`).
+- If needed, you may install any of the available extensions from the Extensions tab.
+- Install those libraries automatically.
+- Compile and run your program.
 
-### 📝 Multi-Format Workspace
-- **Rich Notes**: Support for Markdown and plain text files with live previews.
-- **Interactive Whiteboard**: A vector-based canvas using Konva.js for drawing, text, and embedding images.
-- **Media Support**: Upload and preview images and videos directly within your folders.
-- **TODO Management**: Task tracking with deadlines, repetition (daily/weekly/monthly), and folder-specific color inheritance.
+### Options
+- `--compiler-flags "..."`: Pass extra flags to the compiler.
+  - Example: `python cmpile.py main.cpp --compiler-flags "-O3 -Wall"`
+- `--clean`: Force a re-check of the environment (useful if downloads get corrupted).
+- `-h, --help`: Show help message.
 
-### 🎓 Learning & AI
-- **AI Flashcards**: Automatically generate study cards from your notes using Google Gemini AI.
-- **Deck Management**: Group flashcards by folder or global decks, with full management and deletion capabilities.
-- **Intelligent Summaries**: Get concise summaries of long notes or documents.
+## How it Works
 
-### 🗓️ Dynamic Calendar
-- **Task View**: Visualize your deadlines and tasks on a responsive calendar.
-- **Day Filtering**: Click on any date to see specific tasks and events for that day.
+- **Infrastructure**: All tools (compiler, git, vcpkg) are downloaded into the `internal_downloads` folder. To uninstall, simply delete that folder.
+- **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
-### 🎨 Total Customization
-- **Theme Engine**: Complete control over Accent, Main (Background), and Text colors.
-- **Modern UI**: Clean, responsive design with smooth transitions, glassmorphism effects, and intuitive layouts.
-
-### ☁️ Reliability & Sync
-- **Offline-First**: Built with Dexie.js (IndexedDB) for fast, reliable local storage.
-- **Google Drive Sync**: Securely backup and restore your data using your own Google Drive storage.
-
-## 🛠️ Tech Stack
-- **Frontend**: Vanilla JavaScript (ES6+), Modern CSS (Variables, Flexbox, Grid).
-- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper).
-- **Canvas**: [Konva.js](https://konvajs.org/) for whiteboard functionality.
-- **AI**: [Google Gemini API](https://ai.google.dev/).
-- **Icons**: Font Awesome integration.
-
-## 🚀 Getting Started
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-repo/powernote.git
-   ```
-2. **Open index.html**:
-   Since this is a client-side application, you can simply open `index.html` in any modern web browser.
-3. **Configure AI (Optional)**:
-   - Go to **Settings** in the app.
-   - Enter your **Google Gemini API Key** to enable flashcard generation and summaries.
-4. **Setup Cloud Backup (Optional)**:
-   - In **Settings**, connect your Google account to enable Google Drive sync.
-
-## 🛡️ Privacy
-All your data is stored locally in your browser's IndexedDB. No notes or files are sent to any server unless you explicitly enable Google Drive Sync or use the AI features (which send note content to Google's Gemini API).
-
----
-*Built with ❤️ for learners and creators.*
+## What's New
+ # Version 2.5
+  - Added Cmake as a dependency to download after the first run.
+  - New Extensions are now available.
+  - Added more packages to the package finder.
+  - Removed Cmake as a standalone download dependency from all extensions.
+  - Improved stability issues.
+  - Fixed some errors when bootstrapping vcpkg.
+  - Updated all Extensions to their latest versions.
+  - Rebranded to Version 2.5.
+ # Version 2.4
+  - Added version number visibility next to each one of the extensions.
+  - Added a new Uninstall button to the Extensions tab for uninstalling extensions easier instead of deleting the files manually.
+  - More extensions in the Extensions tab are now available.
+  - Added more packages to the package finder.
+  - Fixed some errors when downloading essential files for the compiler.
+  - When extensions are deleted manually, the page now refreshes instantly without a restart.
+  - Rebranded to Version 2.4
+ # Version 2.3
+  - Fixed some errors with dependency installtion.
+  - Some other bugs fixes and improvements.
+  - Added dependencies for extensions to be downloaded automatically.
+  - Updated Compiler (LLVM-MinGW) and Git to latest version.
+  - Updated Extensions to their latest versions.
+  - Added more packages to package finder.
+  - Rebranded to Version 2.3.
+ # Version 2.2
+  - Added a new feature called Extensions. You can now install extensions to add packages to your project without needing them to download from vcpkg.
+  - For now, added two extensions but more will be added in later updates.
+  - Added the ability to add custom extensions from local files.
+  - Added a new "Clear Log Output" button to the GUI.
+  - Rebranded to Version 2.2.
