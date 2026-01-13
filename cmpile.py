@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import shlex
+import shutil
 
 # Import our modules
 import ui
@@ -100,6 +101,25 @@ class CmpileBuilder:
                 ui.display_success(message)
             else:
                 ui.display_status(message)
+
+    def copy_runtime_dlls(self, vcpkg_mgr, output_folder, required_packages):
+        """Copies DLLs from vcpkg bin folder to output directory for all required packages."""
+        bin_path = vcpkg_mgr.get_bin_path()
+        if not os.path.exists(bin_path):
+            self.log("No DLL folder found for vcpkg packages.", "bold red")
+            return
+        for f in os.listdir(bin_path):
+            if f.endswith(".dll"):
+                lower_f = f.lower()
+                for pkg in required_packages:
+                    if pkg.lower() in lower_f:
+                        try:
+                            shutil.copy(os.path.join(bin_path, f), os.path.join(output_folder, f))
+                            self.log(f"Copied {f} to output folder.", "bold green")
+                        except Exception as e:
+                            self.log(f"Failed to copy {f}: {e}", "bold red")
+                        break
+
 
     def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False):
 
@@ -305,6 +325,10 @@ class CmpileBuilder:
             if result.stderr:
                 self.log(result.stderr, "bold red")
             self.log("Build successful!", "bold green")
+
+            if not build_dll:
+                self.copy_runtime_dlls(vcpkg_mgr, os.path.dirname(output_exe), required_packages)
+
         except subprocess.CalledProcessError as e:
             self.log("Linking failed.", "bold red")
             self.log(e.stderr, "bold red")

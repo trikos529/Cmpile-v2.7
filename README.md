@@ -38,7 +38,7 @@ On the first run, Cmpile will:
  # Version 2.6
  - Added full DLL support when compiling files.
  - Added a new checkbox in the GUI "Build DLL" to build a DLL file.
- - Added a new argument for terminal use "-dll" for building DLL files.
+ - Added a new argument for terminal use "--dll" for building DLL files.
  - Added more packages to the package finder.
  - Improved compilation handling.
  - Improved stability for compilation.
