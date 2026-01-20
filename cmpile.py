@@ -273,7 +273,7 @@ class CmpileBuilder:
                 return (None, True, f"Compilation failed for {src}.", e.stderr)
 
         compilation_failed = False
-        self.log(f"Compiling {len(files)} files (Parallel)...")
+        self.log(f"Compiling {len(files)} files...")
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Map returns results in order
@@ -317,7 +317,7 @@ class CmpileBuilder:
                 exe_name += ".dll"
                 # Create an import library (lib<name>.a) for MinGW/Clang
                 implib_name = "lib" + os.path.splitext(os.path.basename(files[0]))[0] + ".a"
-                output_implib = os.path.join(project_root, implib_name)
+                output_implib = os.path.join(OUT_DIR, implib_name)
             else:
                 exe_name += ".so"
         else:
@@ -421,7 +421,7 @@ class CmpileBuilder:
         elif build_dll:
             self.log(f"DLL created at: {output_exe}", "bold blue")
             if output_implib and os.path.exists(output_implib):
-                self.log(f"Import library created at: {output_implib}", "bold blue")
+                 pass
 
         return True
 
