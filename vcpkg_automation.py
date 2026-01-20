@@ -11,6 +11,12 @@ class VcpkgManager:
     def is_installed(self):
         return os.path.exists(self.vcpkg_exe)
 
+    def is_package_installed(self, package_name):
+        """Checks if a package is already installed by looking for its share directory."""
+        # This is much faster than running 'vcpkg list'
+        share_dir = os.path.join(self.get_installed_path(), "share", package_name)
+        return os.path.isdir(share_dir)
+
     def install_package(self, package_name):
         if not self.is_installed():
             self.log_func("vcpkg not found. Please run caching/download script first.", "bold red")

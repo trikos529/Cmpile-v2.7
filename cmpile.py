@@ -3,6 +3,7 @@ import sys
 import subprocess
 import shlex
 import shutil
+import concurrent.futures
 
 # Import our modules
 import ui
@@ -104,22 +105,19 @@ class CmpileBuilder:
 
     def copy_runtime_dlls(self, vcpkg_mgr, output_folder, required_packages):
         """Copies DLLs from vcpkg bin folder to output directory for all required packages."""
+        if not required_packages:
+            return
+
         bin_path = vcpkg_mgr.get_bin_path()
         if not os.path.exists(bin_path):
-            self.log("No DLL folder found for vcpkg packages.", "bold red")
             return
+            
         for f in os.listdir(bin_path):
             if f.endswith(".dll"):
-                lower_f = f.lower()
-                for pkg in required_packages:
-                    if pkg.lower() in lower_f:
-                        try:
-                            shutil.copy(os.path.join(bin_path, f), os.path.join(output_folder, f))
-                            self.log(f"Copied {f} to output folder.", "bold green")
-                        except Exception as e:
-                            self.log(f"Failed to copy {f}: {e}", "bold red")
-                        break
-
+                try:
+                    shutil.copy(os.path.join(bin_path, f), os.path.join(output_folder, f))
+                except Exception:
+                    pass
 
     def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False):
 
@@ -128,7 +126,7 @@ class CmpileBuilder:
             if os.path.isdir(path):
                 for root, _, files in os.walk(path):
                     for file in files:
-                        if file.endswith(('.c', '.cpp', '.C', '.CPP')):
+                        if file.endswith(('.c', '.cpp', '.C', '.CPP', '.cc', '.cxx')):
                             expanded_files.append(os.path.join(root, file))
             elif os.path.isfile(path):
                 expanded_files.append(path)
@@ -177,6 +175,8 @@ class CmpileBuilder:
             if filtered_packages:
                 self.log(f"Identified dependencies: {', '.join(filtered_packages)}")
                 for pkg in filtered_packages:
+                     if vcpkg_mgr.is_package_installed(pkg):
+                         continue
                      if not vcpkg_mgr.install_package(pkg):
                          self.log(f"Failed to install dependency: {pkg}", "bold red")
                          return False # Stop if dependency fails
@@ -196,6 +196,13 @@ class CmpileBuilder:
         project_root = os.path.dirname(files[0])
         OUT_DIR = os.path.join(project_root, "out")
         
+        if clean and os.path.exists(OUT_DIR):
+             self.log("Cleaning output directory...", "bold yellow")
+             try:
+                 shutil.rmtree(OUT_DIR)
+             except Exception as e:
+                 self.log(f"Failed to clean output directory: {e}", "bold red")
+
         if not os.path.exists(OUT_DIR):
             os.makedirs(OUT_DIR)
 
@@ -216,34 +223,75 @@ class CmpileBuilder:
             except:
                 base_compile_flags.extend(compiler_flags.split())
 
-        compilation_failed = False
-        for src in files:
+        # Helper function for parallel compilation
+        def compile_single_file(src):
             compiler = get_compiler_for_file(src)
             base_name = os.path.basename(src)
             obj_name = os.path.splitext(base_name)[0] + ".o"
             obj_path = os.path.join(OUT_DIR, obj_name)
-            object_files.append(obj_path)
-
+            dep_path = os.path.join(OUT_DIR, os.path.splitext(base_name)[0] + ".d")
+            
+            # Check if recompile is needed
             needs_recompile = True
             if os.path.exists(obj_path) and not clean:
+                is_up_to_date = False
+                # 1. Check source modification time
                 if os.path.getmtime(src) < os.path.getmtime(obj_path):
-                    needs_recompile = False
+                    is_up_to_date = True
+                    
+                    # 2. Check header dependencies if .d file exists
+                    if os.path.exists(dep_path):
+                        try:
+                            with open(dep_path, 'r') as f:
+                                content = f.read().replace('\\\n', '')
+                                # Parse makefile rule: target: dep1 dep2 ...
+                                if ':' in content:
+                                    deps = content.split(':')[1].split()
+                                    obj_mtime = os.path.getmtime(obj_path)
+                                    for dep in deps:
+                                        dep = dep.strip()
+                                        if dep and os.path.exists(dep):
+                                            if os.path.getmtime(dep) > obj_mtime:
+                                                is_up_to_date = False
+                                                break
+                        except Exception:
+                            # If we fail to read deps, assume we need to recompile
+                            is_up_to_date = False
+                
+                if is_up_to_date:
+                    return (obj_path, False, f"Skipping {base_name} (up to date)", None)
 
-            if needs_recompile:
-                self.log(f"Compiling {base_name}...")
-                cmd = [compiler, "-c", src, "-o", obj_path] + base_compile_flags
-                try:
-                    # Capture stderr to show compile errors
-                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-                    if result.stderr:
-                        self.log(result.stderr, "bold red")
-                except subprocess.CalledProcessError as e:
-                    self.log(f"Compilation failed for {src}.", "bold red")
-                    self.log(e.stderr, "bold red")
+            cmd = [compiler, "-c", src, "-o", obj_path, "-MMD", "-MF", dep_path] + base_compile_flags
+            try:
+                # Capture stderr to show compile errors
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                log_msg = f"Compiling {base_name}..."
+                if result.stderr:
+                     return (obj_path, True, log_msg, result.stderr)
+                return (obj_path, True, log_msg, None)
+            except subprocess.CalledProcessError as e:
+                return (None, True, f"Compilation failed for {src}.", e.stderr)
+
+        compilation_failed = False
+        self.log(f"Compiling {len(files)} files (Parallel)...")
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Map returns results in order
+            results = executor.map(compile_single_file, files)
+            
+            for src, (obj_path, was_compiled, log_msg, error_msg) in zip(files, results):
+                if log_msg:
+                    self.log(log_msg)
+                
+                if error_msg:
+                    self.log(error_msg, "bold red")
+                    if obj_path is None: # Critical failure
+                         compilation_failed = True
+                
+                if obj_path:
+                    object_files.append(obj_path)
+                else:
                     compilation_failed = True
-                    break
-            else:
-                 self.log(f"Skipping {base_name} (up to date)")
 
         if compilation_failed:
             return False
@@ -262,8 +310,16 @@ class CmpileBuilder:
             else: linker = GCC_EXE
 
         exe_name = os.path.splitext(os.path.basename(files[0]))[0]
+        output_implib = None
+
         if build_dll:
-            exe_name += ".dll" if os.name == 'nt' else ".so"
+            if os.name == 'nt':
+                exe_name += ".dll"
+                # Create an import library (lib<name>.a) for MinGW/Clang
+                implib_name = "lib" + os.path.splitext(os.path.basename(files[0]))[0] + ".a"
+                output_implib = os.path.join(project_root, implib_name)
+            else:
+                exe_name += ".so"
         else:
             exe_name += ".exe"
             
@@ -274,6 +330,8 @@ class CmpileBuilder:
         
         if build_dll:
             cmd.append("-shared")
+            if output_implib:
+                cmd.append(f"-Wl,--out-implib,{output_implib}")
             
         if os.path.exists(lib_path):
             cmd.extend(["-L", lib_path])
@@ -326,8 +384,8 @@ class CmpileBuilder:
                 self.log(result.stderr, "bold red")
             self.log("Build successful!", "bold green")
 
-            if not build_dll:
-                self.copy_runtime_dlls(vcpkg_mgr, os.path.dirname(output_exe), required_packages)
+            # Copy runtime DLLs for both executables and DLLs so they are self-contained
+            self.copy_runtime_dlls(vcpkg_mgr, os.path.dirname(output_exe), required_packages)
 
         except subprocess.CalledProcessError as e:
             self.log("Linking failed.", "bold red")
@@ -362,6 +420,8 @@ class CmpileBuilder:
                 self.log(f"Execution error: {e}", "bold red")
         elif build_dll:
             self.log(f"DLL created at: {output_exe}", "bold blue")
+            if output_implib and os.path.exists(output_implib):
+                self.log(f"Import library created at: {output_implib}", "bold blue")
 
         return True
 

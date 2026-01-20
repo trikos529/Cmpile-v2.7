@@ -14,7 +14,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Cmpile V2.6")
+        self.title("Cmpile V2.7")
         self.geometry("900x650")
 
         self.grid_columnconfigure(1, weight=1)
@@ -25,7 +25,7 @@ class App(ctk.CTk):
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(5, weight=1)
 
-        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Cmpile V2.6", font=ctk.CTkFont(size=20, weight="bold"))
+        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Cmpile V2.7", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         
         self.add_file_btn = ctk.CTkButton(self.sidebar_frame, text="Add Files", command=self.add_files)

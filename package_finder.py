@@ -75,9 +75,9 @@ def map_includes_to_packages(includes):
         if '/' in inc:
             parts = inc.split('/')
             root = parts[0]
-            # Try to map the root folder if it matches a known pattern?
+            # Heuristic: map the root folder if it matches a known pattern?
             # actually commonly libs match the folder name: generic usage
-            # but let's be conservative and only use the explicit map for now unless requested otherwise.
-            pass
+            if root.isalnum():
+                packages.add(root.lower())
             
     return packages

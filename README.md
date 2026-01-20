@@ -35,6 +35,16 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.7
+ - Added parallel compilation support for faster builds on multi-core systems.
+ - Improved DLL support: now generates import libraries (.a) for Windows, enabling standard linking against generated DLLs.
+ - Enhanced dependency handling: now copies all available runtime DLLs from vcpkg when dependencies are present, ensuring self-contained builds.
+ - Implemented smart header dependency tracking: modifying included header files now correctly triggers recompilation.
+ - Added support for .cc and .cxx file extensions.
+ - Added heuristic package discovery to find and install vcpkg packages even if not explicitly mapped.
+ - Optimized build process: vcpkg installation checks are now instant if the package is already present.
+ - Improved --clean functionality: now fully removes the output directory for a fresh build.
+ - Rebranded to Version 2.7.
  # Version 2.6
  - Added full DLL support when compiling files.
  - Added a new checkbox in the GUI "Build DLL" to build a DLL file.
