@@ -357,9 +357,34 @@ class App(ctk.CTk):
             self.log_message("Please select source files first!", "error")
             return
 
-        flags = self.flags_entry.get()
-        clean = self.clean_checkbox.get() == 1
-        build_dll = self.dll_checkbox.get() == 1
+        raw_flags = self.flags_entry.get()
+
+        if "--help" in raw_flags:
+            self.log_textbox.configure(state="normal")
+            self.log_textbox.delete("0.0", "end")
+            help_text = (
+                "Cmpile V2 Help:\n\n"
+                "Internal Options (handled by GUI):\n"
+                "  --clean   : Force a clean build (remove out/ folder)\n"
+                "  --dll     : Build as a Shared Library (DLL)\n"
+                "  --help    : Show this help message\n\n"
+                "Compiler Flags (passed directly to GCC/Clang):\n"
+                "  -O2, -Wall, -g, -std=c++20, etc.\n"
+            )
+            self.log_textbox.insert("end", help_text)
+            self.log_textbox.configure(state="disabled")
+            return
+
+        # Parse internal flags from text
+        clean_from_text = "--clean" in raw_flags
+        dll_from_text = "--dll" in raw_flags
+
+        # Remove internal flags so they don't break the compiler
+        flags = raw_flags.replace("--clean", "").replace("--dll", "").strip()
+
+        # Combine with checkboxes
+        clean = (self.clean_checkbox.get() == 1) or clean_from_text
+        build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
         
         # Check for compiler override
         compiler_override = self.compiler_path_entry.get().strip()

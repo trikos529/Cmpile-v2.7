@@ -36,6 +36,7 @@ On the first run, Cmpile will:
 
 ## What's New
  # Version 2.7
+ - Added support for flags in input field in the GUI.
  - Added parallel compilation support for faster builds on multi-core systems.
  - Improved DLL support: now generates import libraries (.a) for Windows, enabling standard linking against generated DLLs.
  - Enhanced dependency handling: now copies all available runtime DLLs from vcpkg when dependencies are present, ensuring self-contained builds.
@@ -44,6 +45,7 @@ On the first run, Cmpile will:
  - Added heuristic package discovery to find and install vcpkg packages even if not explicitly mapped.
  - Optimized build process: vcpkg installation checks are now instant if the package is already present.
  - Improved --clean functionality: now fully removes the output directory for a fresh build.
+ - Updated Cmake to latest version.
  - Rebranded to Version 2.7.
  # Version 2.6
  - Added full DLL support when compiling files.

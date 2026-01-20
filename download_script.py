@@ -149,7 +149,7 @@ def install_gcc(log_func=_default_log):
         log_func(f"Compiler installation failed: {e}", "bold red")
         raise e
 
-CMAKE_URL = "https://github.com/Kitware/CMake/releases/download/v4.2.1/cmake-4.2.1-windows-x86_64.zip"
+CMAKE_URL = "https://github.com/Kitware/CMake/releases/download/v4.2.2/cmake-4.2.2-windows-x86_64.zip"
 CMAKE_DIR = os.path.join(INTERNAL_DOWNLOADS, "cmake")
 
 def install_cmake(log_func=_default_log):
