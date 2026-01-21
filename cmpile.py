@@ -346,6 +346,12 @@ class CmpileBuilder:
             for pkg in required_packages:
                  if pkg == "nlohmann-json": continue
                  
+                 # Check for explicit library mapping (e.g. for qtbase -> Qt6Widgets, etc.)
+                 if hasattr(package_finder, 'PACKAGE_LIBS') and pkg in package_finder.PACKAGE_LIBS:
+                     for lib in package_finder.PACKAGE_LIBS[pkg]:
+                         cmd.append(f"-l{lib}")
+                     continue
+
                  # Dynamic library searching
                  lib_name = pkg
                  if os.path.exists(lib_path):

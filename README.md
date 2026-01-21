@@ -36,6 +36,7 @@ On the first run, Cmpile will:
 
 ## What's New
  # Version 2.7
+ - Improved package finder for specific packages that would not be installed by the package manager.
  - Added support for flags in input field in the GUI.
  - Added parallel compilation support for faster builds on multi-core systems.
  - Improved DLL support: now generates import libraries (.a) for Windows, enabling standard linking against generated DLLs.

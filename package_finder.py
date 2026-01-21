@@ -34,6 +34,17 @@ HEADER_MAPPING = {
     "ffmpeg/avutil.h": "ffmpeg",
     "audiofile/audiofile.h": "audiofile",
     "utf8.h": "utf8",
+    "SDL2/SDL.h": "sdl2",
+    "QApplication": "qtbase",
+    "QDebug": "qtbase",
+    "QString": "qtbase",
+}
+
+# Mapping of package names to specific library names (for linking)
+# This is used when the package name doesn't match the library name directly.
+PACKAGE_LIBS = {
+    "qtbase": ["Qt6Widgets", "Qt6Gui", "Qt6Core", "Qt6Network"],
+    "sdl2": ["SDL2main", "SDL2"],
 }
 
 def find_includes(file_path):
@@ -75,6 +86,13 @@ def map_includes_to_packages(includes):
         if '/' in inc:
             parts = inc.split('/')
             root = parts[0]
+            
+            # Special handling for Qt
+            # Maps QtWidgets, QtCore, QtNetwork, etc. to 'qtbase' (Qt6 default in vcpkg)
+            if root.startswith("Qt") and root[2:].isalnum():
+                packages.add("qtbase")
+                continue
+            
             # Heuristic: map the root folder if it matches a known pattern?
             # actually commonly libs match the folder name: generic usage
             if root.isalnum():
