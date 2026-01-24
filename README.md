@@ -36,12 +36,13 @@ On the first run, Cmpile will:
 
 ## What's New
  # Version 2.7
+ - New extensions are now available.
  - Improved package finder for specific packages that would not be installed by the package manager.
  - Added support for flags in input field in the GUI.
  - Added parallel compilation support for faster builds on multi-core systems.
- - Improved DLL support: now generates import libraries (.a) for Windows, enabling standard linking against generated DLLs.
- - Enhanced dependency handling: now copies all available runtime DLLs from vcpkg when dependencies are present, ensuring self-contained builds.
- - Implemented smart header dependency tracking: modifying included header files now correctly triggers recompilation.
+ - Improved DLL support.
+ - Enhanced dependency handling.
+ - Implemented smart header dependency tracking.
  - Added support for .cc and .cxx file extensions.
  - Added heuristic package discovery to find and install vcpkg packages even if not explicitly mapped.
  - Optimized build process: vcpkg installation checks are now instant if the package is already present.
