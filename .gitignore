@@ -117,3 +117,22 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Cmpile-specific
+internal_downloads/
+extensions/fetched/
+out/
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+test_fetch.cpp
+version.txt
+
+# VS/Build
+.vs/
+debug/
+release/
+x64/
+x86/
