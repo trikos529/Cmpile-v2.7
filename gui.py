@@ -9,6 +9,7 @@ import version
 import requests
 import zipfile
 import shutil
+import re
 
 # Set theme
 ctk.set_appearance_mode("Dark")
@@ -370,12 +371,17 @@ class App(ctk.CTk):
         try:
             response = requests.get(version.VERSION_URL, timeout=10)
             if response.status_code == 200:
-                remote_version = response.text.strip()
-                if remote_version != version.VERSION:
-                    self.log_message(f"New version available: {remote_version} (Current: {version.VERSION})", "success")
-                    self.after(0, lambda: self._show_update_dialog(remote_version))
+                # Parse version from python file content
+                match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', response.text)
+                if match:
+                    remote_version = match.group(1)
+                    if remote_version != version.VERSION:
+                        self.log_message(f"New version available: {remote_version} (Current: {version.VERSION})", "success")
+                        self.after(0, lambda: self._show_update_dialog(remote_version))
+                    else:
+                        self.log_message("Cmpile is up to date.", "success")
                 else:
-                    self.log_message("Cmpile is up to date.", "success")
+                    self.log_message("Could not parse remote version.", "error")
             else:
                 self.log_message(f"Could not check for updates. (HTTP {response.status_code})", "error")
         except Exception as e:
