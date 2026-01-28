@@ -1,10 +1,14 @@
 import customtkinter as ctk
 import os
 import threading
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import cmpile
 import sys
 import extensions
+import version
+import requests
+import zipfile
+import shutil
 
 # Set theme
 ctk.set_appearance_mode("Dark")
@@ -14,7 +18,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Cmpile V2.7")
+        self.title(f"Cmpile V{version.VERSION}")
         self.geometry("900x650")
 
         self.grid_columnconfigure(1, weight=1)
@@ -23,9 +27,9 @@ class App(ctk.CTk):
         # -- Sidebar --
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(5, weight=1)
+        self.sidebar_frame.grid_rowconfigure(6, weight=1) # Adjusted for update button
 
-        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Cmpile V2.7", font=ctk.CTkFont(size=20, weight="bold"))
+        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text=f"Cmpile V{version.VERSION}", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         
         self.add_file_btn = ctk.CTkButton(self.sidebar_frame, text="Add Files", command=self.add_files)
@@ -40,8 +44,11 @@ class App(ctk.CTk):
         self.clear_log_btn = ctk.CTkButton(self.sidebar_frame, text="Clear Output Log", fg_color="transparent", border_width=2, command=self.clear_log)
         self.clear_log_btn.grid(row=4, column=0, padx=20, pady=10)
 
+        self.update_btn = ctk.CTkButton(self.sidebar_frame, text="Check for Updates", command=self.check_for_updates)
+        self.update_btn.grid(row=5, column=0, padx=20, pady=10)
+
         self.quit_button = ctk.CTkButton(self.sidebar_frame, text="Quit", fg_color="transparent", border_width=2, command=self.quit)
-        self.quit_button.grid(row=6, column=0, padx=20, pady=10, sticky="s")
+        self.quit_button.grid(row=7, column=0, padx=20, pady=10, sticky="s")
 
         # -- Main Content Area (Tabview) --
         self.tabview = ctk.CTkTabview(self, corner_radius=10)
@@ -351,6 +358,98 @@ class App(ctk.CTk):
         self.log_textbox.see("end")
         self.log_textbox.configure(state="disabled")
         # Ensure build tab is visible if logging error? Maybe not force switch.
+
+    def check_for_updates(self):
+        self.log_message("Checking for updates...", "info")
+        self.update_btn.configure(state="disabled")
+        t = threading.Thread(target=self._run_check_updates)
+        t.daemon = True
+        t.start()
+
+    def _run_check_updates(self):
+        try:
+            response = requests.get(version.VERSION_URL, timeout=10)
+            if response.status_code == 200:
+                remote_version = response.text.strip()
+                if remote_version != version.VERSION:
+                    self.log_message(f"New version available: {remote_version} (Current: {version.VERSION})", "success")
+                    self.after(0, lambda: self._show_update_dialog(remote_version))
+                else:
+                    self.log_message("Cmpile is up to date.", "success")
+            else:
+                self.log_message(f"Could not check for updates. (HTTP {response.status_code})", "error")
+        except Exception as e:
+            self.log_message(f"Error checking for updates: {e}", "error")
+        finally:
+            self.after(0, lambda: self.update_btn.configure(state="normal"))
+
+    def _show_update_dialog(self, new_version):
+        if messagebox.askyesno("Update Available", f"A new version ({new_version}) is available. Do you want to update now?"):
+            self.start_update()
+
+    def start_update(self):
+        self.log_message("Starting update...", "info")
+        self.update_btn.configure(state="disabled")
+        t = threading.Thread(target=self._run_update)
+        t.daemon = True
+        t.start()
+
+    def _run_update(self):
+        try:
+            self.log_message("Downloading latest version...")
+            zip_path = os.path.join(os.getcwd(), "update.zip")
+            response = requests.get(version.DOWNLOAD_URL, stream=True)
+            response.raise_for_status()
+            with open(zip_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            self.log_message("Extracting update...")
+            extract_dir = os.path.join(os.getcwd(), "update_temp")
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir)
+            
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            # Usually GitHub zip contains a subfolder like Cmpile-v2.7-main
+            subdirs = [d for d in os.listdir(extract_dir) if os.path.isdir(os.path.join(extract_dir, d))]
+            if subdirs:
+                src_dir = os.path.join(extract_dir, subdirs[0])
+                self.log_message("Applying update (merging files)...")
+                for item in os.listdir(src_dir):
+                    s = os.path.join(src_dir, item)
+                    d = os.path.join(os.getcwd(), item)
+                    if os.path.isdir(s):
+                        if os.path.exists(d):
+                            # For directories, we might want to be careful, but for this project we'll just merge
+                            # shutil.copytree(s, d, dirs_exist_ok=True) is Python 3.8+
+                            self._merge_dirs(s, d)
+                        else:
+                            shutil.copytree(s, d)
+                    else:
+                        shutil.copy2(s, d)
+                
+                self.log_message("Update complete! Please restart Cmpile.", "success")
+                os.remove(zip_path)
+                shutil.rmtree(extract_dir)
+            else:
+                self.log_message("Error: Update package format unrecognized.", "error")
+        except Exception as e:
+            self.log_message(f"Update failed: {e}", "error")
+        finally:
+            self.after(0, lambda: self.update_btn.configure(state="normal"))
+
+    def _merge_dirs(self, src, dst):
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                if not os.path.exists(d):
+                    os.makedirs(d)
+                self._merge_dirs(s, d)
+            else:
+                shutil.copy2(s, d)
 
     def start_build(self):
         if not self.source_files:

@@ -10,6 +10,8 @@ import ui
 import download_script
 import vcpkg_automation
 import package_finder
+import extensions
+import version
 
 # Constants
 INTERNAL_DOWNLOADS = download_script.INTERNAL_DOWNLOADS
@@ -148,6 +150,58 @@ class CmpileBuilder:
             self.log(f"Environment setup failed: {e}", "bold red")
             return False
 
+        # 1.5 GitHub Fetches (CMake-like FetchContent)
+        ext_mgr = extensions.ExtensionManager()
+        fetched_extensions_map = {} # repo_url -> ext
+        
+        # Scan for @fetch directives in all source files
+        for src in files:
+            fetches = package_finder.find_github_fetches(src)
+            for repo_url, version in fetches:
+                key = f"{repo_url}@{version}"
+                if key in fetched_extensions_map:
+                    continue
+                    
+                self.log(f"Detected fetch directive: {repo_url} @ {version}")
+                ext = extensions.GitHubFetchExtension(repo_url, version)
+                if not ext.is_installed():
+                    try:
+                        ext.install(progress_callback=self.log)
+                    except Exception as e:
+                        self.log(f"Failed to fetch {repo_url}: {e}", "bold red")
+                        return False
+                else:
+                    ext.auto_detect_paths()
+                
+                fetched_extensions_map[key] = ext
+        
+        fetched_extensions = list(fetched_extensions_map.values())
+        
+        # Add fetched extensions to includes and libs
+        if not extra_includes: extra_includes = []
+        if not extra_lib_paths: extra_lib_paths = []
+        if not extra_link_flags: extra_link_flags = []
+
+        for ext in fetched_extensions:
+            inc = ext.get_include_path()
+            if inc:
+                self.log(f"Adding include path: {inc}")
+                if inc not in extra_includes:
+                    extra_includes.append(inc)
+            
+            lib = ext.get_lib_path()
+            if lib:
+                self.log(f"Adding lib path: {lib}")
+                if lib not in extra_lib_paths:
+                    extra_lib_paths.append(lib)
+            
+            flags = ext.get_link_flags()
+            if flags:
+                self.log(f"Adding link flags: {', '.join(flags)}")
+                for flag in flags:
+                    if flag not in extra_link_flags:
+                        extra_link_flags.append(flag)
+
         # 2. Dependency Analysis
         all_includes = set()
         for src in files:
@@ -155,7 +209,22 @@ class CmpileBuilder:
             includes = package_finder.find_includes(src)
             all_includes.update(includes)
 
-        required_packages = package_finder.map_includes_to_packages(all_includes)
+        # Filter out includes that are already provided by fetched extensions
+        external_includes = set()
+        for inc in all_includes:
+            found_in_fetch = False
+            for ext in fetched_extensions:
+                ext_inc_path = ext.get_include_path()
+                if ext_inc_path:
+                    check_path = os.path.join(ext_inc_path, inc)
+                    if os.path.exists(check_path):
+                        found_in_fetch = True
+                        self.log(f"Include '{inc}' found in fetched extension '{ext.name}'.")
+                        break
+            if not found_in_fetch:
+                external_includes.add(inc)
+
+        required_packages = package_finder.map_includes_to_packages(external_includes)
 
         if required_packages:
             # Filter out packages that are already being linked explicitly via extensions
@@ -432,7 +501,7 @@ class CmpileBuilder:
         return True
 
 def main():
-    ui.display_header()
+    print(f"╭──────────────╮\n│ Cmpile V{version.VERSION} │\n╰──────────────╯")
     args = ui.parse_arguments()
 
     # Define a logger for the CLI that maps to the `ui` functions

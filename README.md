@@ -35,8 +35,12 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
- # Version 2.7
- - New extensions are now available.
+ # Version 2.8
+- Added a new CMake-like feature to fetch required files, headers, or libraries from GitHub using the `// @fetch` directive.
+- Added an "Update" button to the GUI to automatically check for and install the latest version of Cmpile.
+- Rebranded to Version 2.8.
+# Version 2.7
+- New extensions are now available.
  - Improved package finder for specific packages that would not be installed by the package manager.
  - Added support for flags in input field in the GUI.
  - Added parallel compilation support for faster builds on multi-core systems.

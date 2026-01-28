@@ -999,6 +999,168 @@ class EnttExtension(Extension):
     def get_link_flags(self):
         return []
 
+class GitHubFetchExtension(Extension):
+    def __init__(self, repo_url, version="main"):
+        # repo_url: https://github.com/user/repo
+        self.repo_url = repo_url.rstrip('/')
+        self.repo_name = self.repo_url.split('/')[-1]
+        super().__init__(self.repo_name)
+        self.version = version
+        
+        # We'll use a specific subdir for fetched content
+        self.fetch_dir = os.path.join(EXTENSIONS_DIR, "fetched")
+        self.install_dir = os.path.join(self.fetch_dir, self.repo_name)
+        
+        # For GitHub zips: https://github.com/user/repo/archive/refs/heads/main.zip
+        # or tags: https://github.com/user/repo/archive/refs/tags/v1.0.0.zip
+        if version.startswith('v') and any(char.isdigit() for char in version):
+             self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
+        else:
+             # Try tags first if it looks like a version, otherwise heads
+             if any(char.isdigit() for char in version):
+                 self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
+             else:
+                 self.download_url = f"{self.repo_url}/archive/refs/heads/{version}.zip"
+             
+        self.zip_filename = f"{self.repo_name}-{version}.zip"
+        
+        self.include_path = None
+        self.lib_path = None
+        self.link_flags = []
+
+        if self.is_installed():
+            self.auto_detect_paths()
+
+    def is_installed(self):
+        return os.path.exists(os.path.join(self.install_dir)) and os.path.isdir(self.install_dir)
+
+    def auto_detect_paths(self):
+        # Search for include dir
+        potential_includes = [
+            os.path.join(self.install_dir, "include"),
+            os.path.join(self.install_dir, "src"),
+            os.path.join(self.install_dir, "single_include"),
+            self.install_dir
+        ]
+        
+        found_inc = False
+        for p in potential_includes:
+            if os.path.isdir(p):
+                # Check if it contains headers
+                has_headers = False
+                for root, dirs, files in os.walk(p):
+                    if any(f.endswith(('.h', '.hpp', '.hxx')) for f in files):
+                        has_headers = True
+                        break
+                if has_headers:
+                    self.include_path = p
+                    found_inc = True
+                    break
+        
+        # Search for lib dir
+        potential_libs = [
+            os.path.join(self.install_dir, "lib"),
+            os.path.join(self.install_dir, "build"),
+            os.path.join(self.install_dir, "bin"),
+            self.install_dir
+        ]
+        for p in potential_libs:
+            if os.path.isdir(p):
+                if any(f.endswith(('.a', '.lib')) for root, dirs, files in os.walk(p) for f in files):
+                    self.lib_path = p
+                    break
+        
+        # If no lib path found, but it's a header-only lib, just use include_path
+        if not self.lib_path:
+            self.lib_path = self.include_path
+        
+        self.installed = found_inc
+
+    def install(self, progress_callback=None):
+        if self.is_installed():
+             if progress_callback: progress_callback(f"'{self.name}' already fetched.")
+             self.auto_detect_paths()
+             return
+
+        if not os.path.exists(self.fetch_dir):
+            os.makedirs(self.fetch_dir)
+
+        try:
+            if progress_callback: progress_callback(f"Fetching {self.repo_url} ({self.version})...")
+            zip_path = os.path.join(self.fetch_dir, self.zip_filename)
+            
+            response = requests.get(self.download_url, stream=True)
+            if response.status_code != 200:
+                # Try fallback for version naming (sometimes tags don't have 'v' or do)
+                alt_version = self.version[1:] if self.version.startswith('v') else f"v{self.version}"
+                alt_url = f"{self.repo_url}/archive/refs/tags/{alt_version}.zip"
+                if progress_callback: progress_callback(f"Trying alternative URL: {alt_url}")
+                response = requests.get(alt_url, stream=True)
+                
+            response.raise_for_status()
+            
+            with open(zip_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            if progress_callback: progress_callback("Extracting...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # The first folder in the zip is usually the root of the repo
+                namelist = zip_ref.namelist()
+                if not namelist:
+                    raise Exception("Downloaded zip is empty")
+                    
+                top_dir = namelist[0].split('/')[0]
+                zip_ref.extractall(self.fetch_dir)
+                
+                extracted_path = os.path.join(self.fetch_dir, top_dir)
+                if os.path.exists(self.install_dir):
+                    shutil.rmtree(self.install_dir, onerror=self._on_rm_error)
+                shutil.move(extracted_path, self.install_dir)
+
+            try: os.remove(zip_path)
+            except: pass
+
+            self.auto_detect_paths()
+            self.installed = True
+            if progress_callback: progress_callback(f"'{self.name}' fetched and analyzed.")
+
+        except Exception as e:
+            if progress_callback: progress_callback(f"Error fetching {self.name}: {e}")
+            raise e
+
+    def _on_rm_error(self, func, path, exc_info):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    def get_include_path(self):
+        return self.include_path
+
+    def get_lib_path(self):
+        return self.lib_path
+
+    def get_link_flags(self):
+        # Auto-detect libs in the lib_path
+        if self.lib_path and os.path.exists(self.lib_path):
+            flags = []
+            for f in os.listdir(self.lib_path):
+                if f.endswith(('.a', '.lib')):
+                    name = os.path.splitext(f)[0]
+                    if name.startswith('lib'): name = name[3:]
+                    # Avoid duplicates and common system libs if they somehow got here
+                    flag = f"-l{name}"
+                    if flag not in flags:
+                        flags.append(flag)
+            return flags
+        return []
+
+    def to_dict(self):
+        return {
+            "type": "github",
+            "repo_url": self.repo_url,
+            "version": self.version
+        }
+
 class CustomExtension(Extension):
     def __init__(self, name, include_path, lib_path, flags):
         super().__init__(name)
@@ -1061,16 +1223,22 @@ class ExtensionManager:
                 with open(CUSTOM_EXTENSIONS_FILE, 'r') as f:
                     data = json.load(f)
                     for ext_data in data:
-                        ext = CustomExtension.from_dict(ext_data)
+                        if ext_data.get("type") == "github":
+                            ext = GitHubFetchExtension(ext_data["repo_url"], ext_data["version"])
+                        else:
+                            ext = CustomExtension.from_dict(ext_data)
                         self.extensions[ext.name] = ext
             except Exception as e:
                 print(f"Failed to load custom extensions: {e}")
 
     def save_custom_extensions(self):
-        custom_exts = [
-            ext.to_dict() for ext in self.extensions.values() 
-            if isinstance(ext, CustomExtension)
-        ]
+        custom_exts = []
+        for ext in self.extensions.values():
+            if isinstance(ext, CustomExtension):
+                custom_exts.append(ext.to_dict())
+            elif isinstance(ext, GitHubFetchExtension):
+                custom_exts.append(ext.to_dict())
+                
         if not os.path.exists(EXTENSIONS_DIR):
             os.makedirs(EXTENSIONS_DIR)
             

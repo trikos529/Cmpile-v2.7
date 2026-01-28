@@ -64,6 +64,26 @@ def find_includes(file_path):
         print(f"Error reading {file_path}: {e}")
     return includes
 
+def find_github_fetches(file_path):
+    """
+    Scans a C/C++ file for @fetch directives.
+    Format: // @fetch https://github.com/user/repo [version]
+    Returns a list of tuples (repo_url, version).
+    """
+    fetches = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Regex for // @fetch <url> [version]
+                match = re.search(r'//\s*@fetch\s+(https://github\.com/[^\s@]+)(?:\s*@?\s*([^\s]+))?', line)
+                if match:
+                    repo_url = match.group(1).strip()
+                    version = match.group(2).strip() if match.group(2) else "main"
+                    fetches.append((repo_url, version))
+    except Exception as e:
+        print(f"Error reading {file_path} for fetches: {e}")
+    return fetches
+
 def map_includes_to_packages(includes):
     """
     Maps a list of include paths to potential vcpkg package names.

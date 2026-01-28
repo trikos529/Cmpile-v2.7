@@ -2,11 +2,12 @@ import argparse
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
+import version
 
 console = Console()
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Cmpile V2 - Compile and Run C/C++ code with ease.")
+    parser = argparse.ArgumentParser(description=f"Cmpile V{version.VERSION} - Compile and Run C/C++ code with ease.")
     parser.add_argument("files", nargs='+', help="The C or C++ files or folders to compile and run.")
     parser.add_argument("--compiler-flags", help="Additional compiler flags (quoted string).", default="")
     parser.add_argument("--clean", action="store_true", help="Force clean build (re-download/re-install if needed).")
@@ -14,7 +15,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def display_header():
-    console.print(Panel.fit("[bold cyan]Cmpile V2[/bold cyan]", border_style="cyan"))
+    console.print(Panel.fit(f"[bold cyan]Cmpile V{version.VERSION}[/bold cyan]", border_style="cyan"))
 
 def display_status(message, style="bold blue"):
     console.print(f"[{style}]{message}[/{style}]")
