@@ -1036,11 +1036,10 @@ class GitHubFetchExtension(Extension):
 
     def auto_detect_paths(self):
         # Search for include dir
+        # Priority 1: Standard include directories
         potential_includes = [
             os.path.join(self.install_dir, "include"),
-            os.path.join(self.install_dir, "src"),
             os.path.join(self.install_dir, "single_include"),
-            self.install_dir
         ]
         
         found_inc = False
@@ -1056,6 +1055,50 @@ class GitHubFetchExtension(Extension):
                     self.include_path = p
                     found_inc = True
                     break
+        
+        # Priority 2: Recursive search for any 'include' directory
+        if not found_inc:
+             candidates = []
+             for root, dirs, files in os.walk(self.install_dir):
+                 if "include" in dirs:
+                     p = os.path.join(root, "include")
+                     # Check if it actually has headers (recursively count)
+                     header_count = 0
+                     for r, d, f in os.walk(p):
+                         header_count += sum(1 for x in f if x.endswith(('.h', '.hpp', '.hxx')))
+                     
+                     if header_count > 0:
+                         candidates.append((p, header_count))
+             
+             if candidates:
+                 # Pick the one with the most headers
+                 candidates.sort(key=lambda x: x[1], reverse=True)
+                 self.include_path = candidates[0][0]
+                 found_inc = True
+
+        # Priority 3: 'src' directory
+        if not found_inc:
+            p = os.path.join(self.install_dir, "src")
+            if os.path.isdir(p):
+                has_headers = False
+                for root, dirs, files in os.walk(p):
+                    if any(f.endswith(('.h', '.hpp', '.hxx')) for f in files):
+                        has_headers = True
+                        break
+                if has_headers:
+                    self.include_path = p
+                    found_inc = True
+
+        # Priority 4: Root directory
+        if not found_inc:
+             # Check if root has headers
+             if any(f.endswith(('.h', '.hpp', '.hxx')) for f in os.listdir(self.install_dir)):
+                 self.include_path = self.install_dir
+                 found_inc = True
+             # Or if root contains headers in subdirs (last resort, old behavior)
+             elif any(f.endswith(('.h', '.hpp', '.hxx')) for root, dirs, files in os.walk(self.install_dir) for f in files):
+                 self.include_path = self.install_dir
+                 found_inc = True
         
         # Search for lib dir
         potential_libs = [
@@ -1140,9 +1183,9 @@ class GitHubFetchExtension(Extension):
         return self.lib_path
 
     def get_link_flags(self):
+        flags = []
         # Auto-detect libs in the lib_path
         if self.lib_path and os.path.exists(self.lib_path):
-            flags = []
             for f in os.listdir(self.lib_path):
                 if f.endswith(('.a', '.lib')):
                     name = os.path.splitext(f)[0]
@@ -1151,8 +1194,15 @@ class GitHubFetchExtension(Extension):
                     flag = f"-l{name}"
                     if flag not in flags:
                         flags.append(flag)
-            return flags
-        return []
+        
+        # Special case for webview on Windows
+        if self.repo_name == "webview" and os.name == 'nt':
+             sys_libs = ["-lole32", "-lshlwapi", "-lversion", "-luser32", "-ladvapi32", "-lshell32"]
+             for lib in sys_libs:
+                 if lib not in flags:
+                     flags.append(lib)
+
+        return flags
 
     def to_dict(self):
         return {
