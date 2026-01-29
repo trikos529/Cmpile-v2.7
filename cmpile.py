@@ -121,6 +121,43 @@ class CmpileBuilder:
                 except Exception:
                     pass
 
+    def copy_extension_dlls(self, ext, output_folder):
+        """Copies DLLs from extension directories to output directory."""
+        paths_to_check = []
+        lib_path = ext.get_lib_path()
+        if lib_path and os.path.isdir(lib_path):
+            paths_to_check.append(lib_path)
+            # Check for sibling 'bin' directory (common in CMake installs: lib/../bin)
+            bin_path = os.path.join(os.path.dirname(lib_path), "bin")
+            if os.path.isdir(bin_path):
+                paths_to_check.append(bin_path)
+        
+        # Also check install_dir/bin if it exists
+        if hasattr(ext, 'install_dir'):
+             bin_path = os.path.join(ext.install_dir, "bin")
+             if os.path.isdir(bin_path) and bin_path not in paths_to_check:
+                 paths_to_check.append(bin_path)
+             # And install/bin
+             install_bin = os.path.join(ext.install_dir, "install", "bin")
+             if os.path.isdir(install_bin) and install_bin not in paths_to_check:
+                 paths_to_check.append(install_bin)
+
+        for path in paths_to_check:
+            try:
+                for f in os.listdir(path):
+                    if f.endswith(".dll"):
+                        src = os.path.join(path, f)
+                        dst = os.path.join(output_folder, f)
+                        if not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst):
+                             try:
+                                 shutil.copy2(src, dst)
+                                 self.log(f"Copied runtime DLL: {f}")
+                             except Exception:
+                                 pass
+            except Exception:
+                pass
+
+
     def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False):
 
         expanded_files = []
@@ -461,8 +498,13 @@ class CmpileBuilder:
 
             # Copy runtime DLLs for both executables and DLLs so they are self-contained
             self.copy_runtime_dlls(vcpkg_mgr, os.path.dirname(output_exe), required_packages)
+            
+            # Copy DLLs from fetched extensions
+            for ext in fetched_extensions:
+                self.copy_extension_dlls(ext, os.path.dirname(output_exe))
 
         except subprocess.CalledProcessError as e:
+
             self.log("Linking failed.", "bold red")
             self.log(e.stderr, "bold red")
             return False

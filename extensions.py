@@ -1036,8 +1036,9 @@ class GitHubFetchExtension(Extension):
 
     def auto_detect_paths(self):
         # Search for include dir
-        # Priority 1: Standard include directories
+        # Priority 1: Standard include directories (prefer installed artifacts)
         potential_includes = [
+            os.path.join(self.install_dir, "install", "include"),
             os.path.join(self.install_dir, "include"),
             os.path.join(self.install_dir, "single_include"),
         ]
@@ -1045,6 +1046,7 @@ class GitHubFetchExtension(Extension):
         found_inc = False
         for p in potential_includes:
             if os.path.isdir(p):
+
                 # Check if it contains headers
                 has_headers = False
                 for root, dirs, files in os.walk(p):
@@ -1102,11 +1104,13 @@ class GitHubFetchExtension(Extension):
         
         # Search for lib dir
         potential_libs = [
+            os.path.join(self.install_dir, "install", "lib"),
             os.path.join(self.install_dir, "lib"),
             os.path.join(self.install_dir, "build"),
             os.path.join(self.install_dir, "bin"),
             self.install_dir
         ]
+
         for p in potential_libs:
             if os.path.isdir(p):
                 if any(f.endswith(('.a', '.lib')) for root, dirs, files in os.walk(p) for f in files):
@@ -1167,6 +1171,43 @@ class GitHubFetchExtension(Extension):
             self.auto_detect_paths()
             self.installed = True
             if progress_callback: progress_callback(f"'{self.name}' fetched and analyzed.")
+            
+            # 4. Auto-Build (CMake)
+            if os.path.exists(os.path.join(self.install_dir, "CMakeLists.txt")):
+                try:
+                    if progress_callback: progress_callback(f"CMakeLists.txt found. Attempting to build {self.name}...")
+                    build_dir = os.path.join(self.install_dir, "build")
+                    install_dir = os.path.join(self.install_dir, "install")
+                    if not os.path.exists(build_dir): os.makedirs(build_dir)
+                    
+                    # Configure
+                    cmake_cmd = [
+                        "cmake", "-S", self.install_dir, "-B", build_dir,
+                        f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+                        "-DBUILD_SHARED_LIBS=OFF",
+                        "-DBUILD_TESTS=OFF",
+                        "-DBUILD_EXAMPLES=OFF"
+                    ]
+                    
+                    if os.name == 'nt' and shutil.which("mingw32-make"):
+                         cmake_cmd.extend(["-G", "MinGW Makefiles"])
+                         
+                    if progress_callback: progress_callback("Configuring with CMake...")
+                    subprocess.run(cmake_cmd, check=True, cwd=build_dir, capture_output=True)
+                    
+                    # Build & Install
+                    if progress_callback: progress_callback("Building and Installing...")
+                    build_cmd = ["cmake", "--build", build_dir, "--target", "install", "--config", "Release"]
+                    subprocess.run(build_cmd, check=True, cwd=build_dir, capture_output=True)
+                    
+                    if progress_callback: progress_callback(f"Build successful. Artifacts installed to {install_dir}")
+                    
+                    # Re-detect paths to find the new install artifacts
+                    self.auto_detect_paths()
+                    
+                except Exception as e:
+                    if progress_callback: progress_callback(f"Warning: Automatic build failed: {e}. Continuing with source-only...")
+
 
         except Exception as e:
             if progress_callback: progress_callback(f"Error fetching {self.name}: {e}")

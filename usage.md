@@ -20,6 +20,8 @@ The progress of the compilation will be displayed in the output window, allowing
 - **Package Management**: Manage and install packages according to your needs for your projects thenks to vcpkg.
 - **Automatic Dependency Handling**: When installing extensions, all of their dependencies are downloaded automatically for you.
 - **Full DLL Support**: Cmpile fully supports DLL files, allowing you to compile projects that rely on dynamic link libraries.
+- **Automatic Library Linking**: Cmpile automatically links fetched libraries when compiling executables, eliminating the need for manual configuration.
+- **Fetching Libraries**: Cmpile supports fetching libraries from GitHub using the `// @fetch` directive.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.
