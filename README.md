@@ -35,11 +35,17 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.10
+ - Added support for local libraries using the `//$[path](name)` directive.
+ - Added automatic include and library path detection for local libraries.
+ - Added support for manual linker flags in local library directives.
+ - Improved extension architecture for better stability.
+ - Rebranded to Version 2.10.
  # Version 2.9
- - Added support for automatically build libraries using `// @fetch` directive.
- - Added automatic linking of fetched libraries.
- - Updated Cmake to latest version.
- - Added support for copying fetched DLLs when building executables.
+ - Added support for automatically building libraries using the `// @fetch` directive.
+ - Added automatic linking for fetched libraries.
+ - Added support for copying runtime DLLs from fetched extensions.
+ - Updated CMake to the latest version.
  - Rebranded to Version 2.9.
  # Version 2.8
 - Added a new CMake-like feature to fetch required files, headers, or libraries from GitHub using the `// @fetch` directive.

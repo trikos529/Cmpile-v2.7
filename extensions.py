@@ -999,42 +999,17 @@ class EnttExtension(Extension):
     def get_link_flags(self):
         return []
 
-class GitHubFetchExtension(Extension):
-    def __init__(self, repo_url, version="main"):
-        # repo_url: https://github.com/user/repo
-        self.repo_url = repo_url.rstrip('/')
-        self.repo_name = self.repo_url.split('/')[-1]
-        super().__init__(self.repo_name)
-        self.version = version
-        
-        # We'll use a specific subdir for fetched content
-        self.fetch_dir = os.path.join(EXTENSIONS_DIR, "fetched")
-        self.install_dir = os.path.join(self.fetch_dir, self.repo_name)
-        
-        # For GitHub zips: https://github.com/user/repo/archive/refs/heads/main.zip
-        # or tags: https://github.com/user/repo/archive/refs/tags/v1.0.0.zip
-        if version.startswith('v') and any(char.isdigit() for char in version):
-             self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
-        else:
-             # Try tags first if it looks like a version, otherwise heads
-             if any(char.isdigit() for char in version):
-                 self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
-             else:
-                 self.download_url = f"{self.repo_url}/archive/refs/heads/{version}.zip"
-             
-        self.zip_filename = f"{self.repo_name}-{version}.zip"
-        
+class PathBasedExtension(Extension):
+    def __init__(self, name):
+        super().__init__(name)
         self.include_path = None
         self.lib_path = None
-        self.link_flags = []
-
-        if self.is_installed():
-            self.auto_detect_paths()
-
-    def is_installed(self):
-        return os.path.exists(os.path.join(self.install_dir)) and os.path.isdir(self.install_dir)
+        self.install_dir = None
 
     def auto_detect_paths(self):
+        if not self.install_dir or not os.path.exists(self.install_dir):
+            return
+
         # Search for include dir
         # Priority 1: Standard include directories (prefer installed artifacts)
         potential_includes = [
@@ -1046,7 +1021,6 @@ class GitHubFetchExtension(Extension):
         found_inc = False
         for p in potential_includes:
             if os.path.isdir(p):
-
                 # Check if it contains headers
                 has_headers = False
                 for root, dirs, files in os.walk(p):
@@ -1121,7 +1095,74 @@ class GitHubFetchExtension(Extension):
         if not self.lib_path:
             self.lib_path = self.include_path
         
-        self.installed = found_inc
+        return found_inc
+
+    def get_include_path(self):
+        return self.include_path
+
+    def get_lib_path(self):
+        return self.lib_path
+
+    def get_link_flags(self):
+        flags = []
+        # Auto-detect libs in the lib_path
+        if self.lib_path and os.path.exists(self.lib_path):
+            for f in os.listdir(self.lib_path):
+                if f.endswith(('.a', '.lib')):
+                    name = os.path.splitext(f)[0]
+                    if name.startswith('lib'): name = name[3:]
+                    # Avoid duplicates and common system libs if they somehow got here
+                    flag = f"-l{name}"
+                    if flag not in flags:
+                        flags.append(flag)
+        
+        # Special case for webview on Windows
+        if self.name == "webview" and os.name == 'nt':
+             sys_libs = ["-lole32", "-lshlwapi", "-lversion", "-luser32", "-ladvapi32", "-lshell32"]
+             for lib in sys_libs:
+                 if lib not in flags:
+                     flags.append(lib)
+
+        return flags
+
+class GitHubFetchExtension(PathBasedExtension):
+    def __init__(self, repo_url, version="main"):
+        # repo_url: https://github.com/user/repo
+        self.repo_url = repo_url.rstrip('/')
+        self.repo_name = self.repo_url.split('/')[-1]
+        super().__init__(self.repo_name)
+        self.version = version
+        
+        # We'll use a specific subdir for fetched content
+        self.fetch_dir = os.path.join(EXTENSIONS_DIR, "fetched")
+        self.install_dir = os.path.join(self.fetch_dir, self.repo_name)
+        
+        # For GitHub zips: https://github.com/user/repo/archive/refs/heads/main.zip
+        # or tags: https://github.com/user/repo/archive/refs/tags/v1.0.0.zip
+        if version.startswith('v') and any(char.isdigit() for char in version):
+             self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
+        else:
+             # Try tags first if it looks like a version, otherwise heads
+             if any(char.isdigit() for char in version):
+                 self.download_url = f"{self.repo_url}/archive/refs/tags/{version}.zip"
+             else:
+                 self.download_url = f"{self.repo_url}/archive/refs/heads/{version}.zip"
+             
+        self.zip_filename = f"{self.repo_name}-{version}.zip"
+        
+        self.include_path = None
+        self.lib_path = None
+        self.link_flags = []
+
+        if self.is_installed():
+            self.auto_detect_paths()
+
+    def is_installed(self):
+        return os.path.exists(os.path.join(self.install_dir)) and os.path.isdir(self.install_dir)
+
+    def auto_detect_paths(self):
+        self.installed = super().auto_detect_paths()
+
 
     def install(self, progress_callback=None):
         if self.is_installed():
@@ -1251,6 +1292,35 @@ class GitHubFetchExtension(Extension):
             "repo_url": self.repo_url,
             "version": self.version
         }
+
+class LocalLibExtension(PathBasedExtension):
+    def __init__(self, name, path, extra_flags=None):
+        super().__init__(name)
+        self.local_path = os.path.abspath(path)
+        self.install_dir = self.local_path
+        self.extra_flags = extra_flags.split() if extra_flags else []
+
+    def install(self, progress_callback=None):
+        if not os.path.exists(self.local_path):
+            msg = f"Error: Local library path '{self.local_path}' does not exist."
+            if progress_callback: progress_callback(msg)
+            else: print(msg)
+            return False
+        self.installed = True
+        return True
+
+    def auto_detect_paths(self):
+        self.install_dir = self.local_path
+        self.installed = super().auto_detect_paths()
+        return self.installed
+
+    def get_link_flags(self):
+        flags = super().get_link_flags()
+        if self.extra_flags:
+            for flag in self.extra_flags:
+                if flag not in flags:
+                    flags.append(flag)
+        return flags
 
 class CustomExtension(Extension):
     def __init__(self, name, include_path, lib_path, flags):

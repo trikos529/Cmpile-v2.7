@@ -84,6 +84,27 @@ def find_github_fetches(file_path):
         print(f"Error reading {file_path} for fetches: {e}")
     return fetches
 
+def find_local_libs(file_path):
+    """
+    Scans a C/C++ file for local library directives.
+    Format: //$[path](name) [flags]
+    Returns a list of tuples (path, name, flags).
+    """
+    libs = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Regex for //$[path](name)
+                match = re.search(r'//\s*\$\[([^\]]+)\]\(([^)]+)\)(.*)', line)
+                if match:
+                    path = match.group(1).strip()
+                    name = match.group(2).strip()
+                    flags = match.group(3).strip()
+                    libs.append((path, name, flags))
+    except Exception as e:
+        print(f"Error reading {file_path} for local libs: {e}")
+    return libs
+
 def map_includes_to_packages(includes):
     """
     Maps a list of include paths to potential vcpkg package names.

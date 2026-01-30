@@ -213,6 +213,30 @@ class CmpileBuilder:
                 fetched_extensions_map[key] = ext
         
         fetched_extensions = list(fetched_extensions_map.values())
+
+        # 1.6 Local Libraries
+        local_lib_map = {}
+        for src in files:
+            local_libs = package_finder.find_local_libs(src)
+            for path, name, flags in local_libs:
+                # Resolve relative paths relative to the source file
+                if not os.path.isabs(path):
+                    path = os.path.normpath(os.path.join(os.path.dirname(src), path))
+                
+                if path in local_lib_map:
+                    continue
+                    
+                self.log(f"Detected local library: {name} at {path} (flags: {flags})")
+                ext = extensions.LocalLibExtension(name, path, flags)
+                if ext.install():
+                    ext.auto_detect_paths()
+                    local_lib_map[path] = ext
+                else:
+                    self.log(f"Failed to load local library '{name}': Path '{path}' not found.", "bold red")
+                    return False
+
+        # Merge local extensions
+        fetched_extensions.extend(local_lib_map.values())
         
         # Add fetched extensions to includes and libs
         if not extra_includes: extra_includes = []
