@@ -102,6 +102,9 @@ class App(ctk.CTk):
         self.dll_checkbox = ctk.CTkCheckBox(self.options_frame, text="Build DLL")
         self.dll_checkbox.pack(side="left", padx=10, pady=10)
 
+        self.no_console_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Console")
+        self.no_console_checkbox.pack(side="left", padx=10, pady=10)
+
         self.build_btn = ctk.CTkButton(self.options_frame, text="Build & Run", command=self.start_build, fg_color="green", hover_color="darkgreen")
         self.build_btn.pack(side="right", padx=10, pady=10)
 
@@ -531,7 +534,8 @@ class App(ctk.CTk):
                 extra_includes=ext_includes,
                 extra_lib_paths=ext_libs,
                 extra_link_flags=ext_flags,
-                build_dll=build_dll
+                build_dll=build_dll,
+                no_console=self.no_console_checkbox.get() == 1
             )
         except Exception as e:
             self.log_message(f"A critical error occurred: {e}", "error")

@@ -157,8 +157,7 @@ class CmpileBuilder:
             except Exception:
                 pass
 
-
-    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False):
+    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False):
 
         expanded_files = []
         for path in source_files:
@@ -457,6 +456,9 @@ class CmpileBuilder:
         output_exe = os.path.join(project_root, exe_name)
 
         cmd = [linker] + object_files + ["-o", output_exe]
+        
+        if no_console and not build_dll and os.name == 'nt':
+            cmd.append("-mwindows")
         
         if build_dll:
             cmd.append("-shared")
