@@ -34,7 +34,7 @@ VCPKG_DIR = os.path.join(INTERNAL_DOWNLOADS, "vcpkg")
 # Provides Clang/LLD with MinGW-w64 runtime.
 GCC_URL = "https://github.com/mstorsjo/llvm-mingw/releases/download/20251216/llvm-mingw-20251216-ucrt-x86_64.zip"
 # MinGit
-GIT_URL = "https://github.com/git-for-windows/git/releases/download/v2.52.0.windows.1/MinGit-2.52.0-64-bit.zip"
+GIT_URL = "https://github.com/git-for-windows/git/releases/download/v2.53.0.windows.1/MinGit-2.53.0-64-bit.zip"
 
 GIT_DIR = os.path.join(INTERNAL_DOWNLOADS, "git")
 

@@ -27,14 +27,23 @@ On the first run, Cmpile will:
   - Example: `python cmpile.py main.cpp --compiler-flags "-O3 -Wall"`
 - `--clean`: Force a re-check of the environment (useful if downloads get corrupted).
 - `--dll`: Build a DLL instead of an executable.
+- `--cmake`: Build the project using CMake. Generates CMakeLists.txt if missing.
 - `-h, --help`: Show help message.
 
 ## How it Works
 
-- **Infrastructure**: All tools (compiler, git, vcpkg) are downloaded into the `internal_downloads` folder. To uninstall, simply delete that folder.
+- **Infrastructure**: All tools (compiler, git, vcpkg, cmake) are downloaded into the `internal_downloads` folder. To uninstall, simply delete that folder.
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.12
+ - Added CMake build support with `--cmake`.
+ - Added a new checkbox "Use CMake" to enable CMake build in the GUI.
+ - Automatically generates `CMakeLists.txt` for your project if using `--cmake`.
+ - Seamlessly integrates with vcpkg for CMake dependencies.
+ - Updated Git to the latest version.
+ - New extensions are now available.
+ - Rebranded to Version 2.12.
  # Version 2.11
  - Added a new "No Console" option to build applications without a terminal window.
  - Rebranded to Version 2.11.

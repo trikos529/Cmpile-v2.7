@@ -883,6 +883,280 @@ class MinizExtension(Extension):
     def get_link_flags(self):
         return ["-lminiz"]
 
+class OpenGLExtension(Extension):
+    def __init__(self):
+        super().__init__("opengl") # Displayed as "opengl" but acts as GLFW
+        self.version = "3.4"
+        self.download_url = f"https://github.com/glfw/glfw/archive/refs/tags/{self.version}.zip"
+        self.zip_filename = f"glfw-{self.version}.zip"
+        self.extract_folder_name = f"glfw-{self.version}"
+        self.install_dir = os.path.join(EXTENSIONS_DIR, "opengl")
+        
+        self.include_path = None
+        self.lib_path = None
+
+        if self.check_default_install():
+            self.path = self.install_dir
+            self.installed = True
+            self.include_path = os.path.join(self.install_dir, "include")
+            self.lib_path = os.path.join(self.install_dir, "build", "src")
+        else:
+            self.path = None
+            self.installed = False
+
+    def is_installed(self):
+        if self.path == self.install_dir:
+            if not self.check_default_install():
+                self.installed = False
+                self.path = None
+        elif self.path: # manual path
+             if not os.path.isdir(self.path):
+                 self.installed = False
+                 self.path = None
+        else: # not installed, check defaulted
+            if self.check_default_install():
+                self.path = self.install_dir
+                self.installed = True
+                self.include_path = os.path.join(self.install_dir, "include")
+                self.lib_path = os.path.join(self.install_dir, "build", "src")
+        return self.installed
+
+    def check_default_install(self):
+        # Check for glfw3.h and libglfw3.a
+        include_check = os.path.exists(os.path.join(self.install_dir, "include", "GLFW", "glfw3.h"))
+        lib_check = os.path.exists(os.path.join(self.install_dir, "build", "src", "libglfw3.a")) or \
+                    os.path.exists(os.path.join(self.install_dir, "build", "src", "glfw3.lib"))
+        return include_check and lib_check
+
+    def install(self, progress_callback=None):
+        if self.installed:
+            if progress_callback: progress_callback("OpenGL (GLFW) already installed.")
+            return
+
+        if not os.path.exists(EXTENSIONS_DIR):
+            os.makedirs(EXTENSIONS_DIR)
+
+        try:
+            # 1. Download
+            if progress_callback: progress_callback(f"Downloading {self.zip_filename}...")
+            zip_path = os.path.join(EXTENSIONS_DIR, self.zip_filename)
+            
+            response = requests.get(self.download_url, stream=True)
+            response.raise_for_status()
+            
+            with open(zip_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            # 2. Extract
+            if progress_callback: progress_callback("Extracting GLFW source...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(EXTENSIONS_DIR)
+            
+            extracted_path = os.path.join(EXTENSIONS_DIR, self.extract_folder_name)
+            
+            if os.path.exists(self.install_dir):
+                shutil.rmtree(self.install_dir, onerror=self._on_rm_error)
+            
+            shutil.move(extracted_path, self.install_dir)
+            
+            try: os.remove(zip_path)
+            except: pass
+
+            # 3. Build with CMake
+            if progress_callback: progress_callback("Configuring GLFW with CMake...")
+            build_dir = os.path.join(self.install_dir, "build")
+            if not os.path.exists(build_dir): os.makedirs(build_dir)
+            
+            cmake_args = [
+                "cmake", "..", 
+                "-DBUILD_SHARED_LIBS=OFF", 
+                "-DGLFW_BUILD_EXAMPLES=OFF",
+                "-DGLFW_BUILD_TESTS=OFF",
+                "-DGLFW_BUILD_DOCS=OFF"
+            ]
+            
+            if os.name == 'nt' and shutil.which("mingw32-make"):
+                 cmake_args.extend(["-G", "MinGW Makefiles"])
+
+            result = subprocess.run(cmake_args, cwd=build_dir, capture_output=True, text=True)
+            if result.returncode != 0:
+                 raise Exception(f"GLFW CMake Configuration Failed:\n{result.stderr}")
+
+            # Build
+            if progress_callback: progress_callback("Building GLFW...")
+            build_cmd = ["cmake", "--build", ".", "--config", "Release"]
+            
+            result = subprocess.run(build_cmd, cwd=build_dir, capture_output=True, text=True)
+            if result.returncode != 0:
+                 raise Exception(f"GLFW Build Failed:\n{result.stderr}")
+
+            if progress_callback: progress_callback("OpenGL (GLFW) installed successfully.")
+            self.installed = True
+            self.path = self.install_dir
+            self.include_path = os.path.join(self.install_dir, "include")
+            self.lib_path = os.path.join(build_dir, "src")
+
+        except Exception as e:
+            if progress_callback: progress_callback(f"Error: {e}")
+            raise e
+
+    def uninstall(self, progress_callback=None):
+        if not self.installed:
+            if progress_callback: progress_callback("OpenGL (GLFW) is not installed.")
+            return
+        
+        try:
+            if progress_callback: progress_callback("Uninstalling OpenGL (GLFW)...")
+            if os.path.exists(self.install_dir):
+                shutil.rmtree(self.install_dir, onerror=self._on_rm_error)
+            
+            self.installed = False
+            self.path = None
+            self.include_path = None
+            self.lib_path = None
+            if progress_callback: progress_callback("OpenGL (GLFW) uninstalled successfully.")
+        except Exception as e:
+            if progress_callback: progress_callback(f"Error uninstalling OpenGL (GLFW): {e}")
+            raise e
+
+    def get_version(self):
+        return f"v{self.version}"
+
+    def _on_rm_error(self, func, path, exc_info):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    def get_include_path(self):
+        return self.include_path
+
+    def get_lib_path(self):
+        return self.lib_path
+
+    def get_link_flags(self):
+        flags = ["-lglfw3"]
+        if os.name == 'nt':
+            flags.extend(["-lgdi32"])
+        else:
+            flags.extend(["-lGL", "-lm", "-lX11", "-lpthread", "-lXrandr", "-lXi", "-ldl"])
+        return flags
+
+class GLMExtension(Extension):
+    def __init__(self):
+        super().__init__("glm")
+        self.version = "1.0.1"
+        self.download_url = f"https://github.com/g-truc/glm/archive/refs/tags/{self.version}.zip"
+        self.zip_filename = f"glm-{self.version}.zip"
+        self.extract_folder_name = f"glm-{self.version}"
+        self.install_dir = os.path.join(EXTENSIONS_DIR, "glm")
+        
+        self.include_path = None
+
+        if self.check_default_install():
+            self.path = self.install_dir
+            self.installed = True
+            self.include_path = self.install_dir
+        else:
+            self.path = None
+            self.installed = False
+
+    def is_installed(self):
+        if self.path == self.install_dir:
+            if not self.check_default_install():
+                self.installed = False
+                self.path = None
+        elif self.path: # manual path
+             if not os.path.isdir(self.path):
+                 self.installed = False
+                 self.path = None
+        else: # not installed, check defaulted
+            if self.check_default_install():
+                self.path = self.install_dir
+                self.installed = True
+                self.include_path = self.install_dir
+        return self.installed
+
+    def check_default_install(self):
+        return os.path.exists(os.path.join(self.install_dir, "glm", "glm.hpp"))
+
+    def install(self, progress_callback=None):
+        if self.installed:
+            if progress_callback: progress_callback("GLM already installed.")
+            return
+
+        if not os.path.exists(EXTENSIONS_DIR):
+            os.makedirs(EXTENSIONS_DIR)
+
+        try:
+            # 1. Download
+            if progress_callback: progress_callback(f"Downloading {self.zip_filename}...")
+            zip_path = os.path.join(EXTENSIONS_DIR, self.zip_filename)
+            
+            response = requests.get(self.download_url, stream=True)
+            response.raise_for_status()
+            
+            with open(zip_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            # 2. Extract
+            if progress_callback: progress_callback("Extracting GLM source...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(EXTENSIONS_DIR)
+            
+            extracted_path = os.path.join(EXTENSIONS_DIR, self.extract_folder_name)
+            
+            if os.path.exists(self.install_dir):
+                shutil.rmtree(self.install_dir, onerror=self._on_rm_error)
+            
+            shutil.move(extracted_path, self.install_dir)
+            
+            try: os.remove(zip_path)
+            except: pass
+
+            if progress_callback: progress_callback("GLM installed successfully (Header-only).")
+            self.installed = True
+            self.path = self.install_dir
+            self.include_path = self.install_dir
+
+        except Exception as e:
+            if progress_callback: progress_callback(f"Error: {e}")
+            raise e
+
+    def uninstall(self, progress_callback=None):
+        if not self.installed:
+            if progress_callback: progress_callback("GLM is not installed.")
+            return
+        
+        try:
+            if progress_callback: progress_callback("Uninstalling GLM...")
+            if os.path.exists(self.install_dir):
+                shutil.rmtree(self.install_dir, onerror=self._on_rm_error)
+            
+            self.installed = False
+            self.path = None
+            self.include_path = None
+            if progress_callback: progress_callback("GLM uninstalled successfully.")
+        except Exception as e:
+            if progress_callback: progress_callback(f"Error uninstalling GLM: {e}")
+            raise e
+
+    def get_version(self):
+        return f"v{self.version}"
+
+    def _on_rm_error(self, func, path, exc_info):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    def get_include_path(self):
+        return self.include_path
+
+    def get_lib_path(self):
+        return None
+
+    def get_link_flags(self):
+        return []
+
 class EnttExtension(Extension):
     def __init__(self):
         super().__init__("entt")
@@ -1374,7 +1648,9 @@ class ExtensionManager:
             "miniaudio": MiniaudioExtension(),
             "tinyxml": TinyXMLExtension(),
             "miniz": MinizExtension(),
-            "entt": EnttExtension()
+            "entt": EnttExtension(),
+            "opengl": OpenGLExtension(),
+            "glm": GLMExtension()
         }
         self.load_custom_extensions()
 

@@ -89,6 +89,120 @@ def get_compiler_for_file(filepath):
     if download_script.is_tool_on_path("g++"): return "g++"
     return GPP_EXE
 
+def generate_cmakelists(project_name, source_files, required_packages, fetched_extensions, extra_includes, extra_lib_paths, extra_link_flags, output_dir):
+    """Generates a CMakeLists.txt file."""
+    
+    # Normalize paths
+    sources = [os.path.abspath(src).replace(os.sep, '/') for src in source_files]
+    output_dir = os.path.abspath(output_dir).replace(os.sep, '/')
+    
+    # Calculate relative paths for sources
+    rel_sources = []
+    for src in sources:
+        try:
+            rel = os.path.relpath(src, output_dir).replace(os.sep, '/')
+            rel_sources.append(rel)
+        except ValueError:
+            rel_sources.append(src)
+
+    cmake_lines = [
+        "cmake_minimum_required(VERSION 3.20)",
+        f"project({project_name} C CXX)",
+        "",
+        "set(CMAKE_CXX_STANDARD 17)",
+        "set(CMAKE_CXX_STANDARD_REQUIRED ON)",
+        "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)",
+        ""
+    ]
+
+    # Add includes
+    include_dirs = set()
+    if extra_includes:
+        for inc in extra_includes:
+            include_dirs.add(os.path.abspath(inc).replace(os.sep, '/'))
+            
+    for ext in fetched_extensions:
+        inc = ext.get_include_path()
+        if inc:
+            include_dirs.add(os.path.abspath(inc).replace(os.sep, '/'))
+
+    if include_dirs:
+        cmake_lines.append(f"include_directories({' '.join(include_dirs)})")
+
+    # Add library directories
+    lib_dirs = set()
+    if extra_lib_paths:
+        for lib in extra_lib_paths:
+            lib_dirs.add(os.path.abspath(lib).replace(os.sep, '/'))
+
+    for ext in fetched_extensions:
+        lib = ext.get_lib_path()
+        if lib:
+            lib_dirs.add(os.path.abspath(lib).replace(os.sep, '/'))
+
+    if lib_dirs:
+        cmake_lines.append(f"link_directories({' '.join(lib_dirs)})")
+
+    # Add packages (vcpkg)
+    cmake_targets = []
+    
+    # Common mappings
+    package_mappings = {
+        "nlohmann-json": ("nlohmann_json", "nlohmann_json::nlohmann_json"),
+        "fmt": ("fmt", "fmt::fmt"),
+        "spdlog": ("spdlog", "spdlog::spdlog"),
+        "sdl2": ("SDL2", "SDL2::SDL2"),
+        "raylib": ("raylib", "raylib"),
+        "glm": ("glm", "glm::glm"),
+        "glfw3": ("glfw3", "glfw"),
+        "glew": ("GLEW", "GLEW::GLEW"),
+        "imgui": ("imgui", "imgui::imgui"),
+        "zlib": ("ZLIB", "ZLIB::ZLIB"),
+        "openssl": ("OpenSSL", "OpenSSL::SSL OpenSSL::Crypto"),
+        "boost-asio": ("Boost", "Boost::asio"),
+        "qtbase": ("Qt6", "Qt6::Widgets"),
+    }
+
+    for pkg in required_packages:
+        if pkg in package_mappings:
+            name, target = package_mappings[pkg]
+            cmake_lines.append(f"find_package({name} CONFIG REQUIRED)")
+            cmake_targets.append(target)
+        else:
+             # Generic fallback
+             cmake_lines.append(f"find_package({pkg} CONFIG REQUIRED)")
+             cmake_targets.append(f"{pkg}::{pkg}")
+
+    cmake_lines.append("")
+    cmake_lines.append(f"add_executable({project_name} {' '.join(rel_sources)})")
+
+    if cmake_targets:
+        cmake_lines.append(f"target_link_libraries({project_name} PRIVATE {' '.join(cmake_targets)})")
+
+    # Link flags and extension libs
+    extra_libs = []
+    if extra_link_flags:
+        for flag in extra_link_flags:
+            if flag.startswith("-l"):
+                extra_libs.append(flag[2:])
+            else:
+                # pass other flags?
+                pass
+                
+    for ext in fetched_extensions:
+        flags = ext.get_link_flags()
+        if flags:
+            for flag in flags:
+                if flag.startswith("-l"):
+                    lib = flag[2:]
+                    if lib not in extra_libs:
+                        extra_libs.append(lib)
+
+    if extra_libs:
+        cmake_lines.append(f"target_link_libraries({project_name} PRIVATE {' '.join(extra_libs)})")
+
+    return "\n".join(cmake_lines)
+
 class CmpileBuilder:
     def __init__(self, log_callback=None):
         self.log_callback = log_callback
@@ -157,7 +271,7 @@ class CmpileBuilder:
             except Exception:
                 pass
 
-    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False):
+    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False, use_cmake=False):
 
         expanded_files = []
         for path in source_files:
@@ -315,6 +429,100 @@ class CmpileBuilder:
             self.log("No external dependencies detected.")
 
         # 3. Compilation
+        if use_cmake:
+            # Determine project root based on the first source file
+            project_root = os.path.dirname(files[0])
+            
+            self.log("Building with CMake...")
+            cmake_lists_path = os.path.join(project_root, "CMakeLists.txt")
+            
+            # If not exists or clean, generate it
+            if not os.path.exists(cmake_lists_path) or clean:
+                self.log("Generating CMakeLists.txt...")
+                content = generate_cmakelists(
+                    os.path.basename(project_root) or "Project",
+                    files,
+                    required_packages if 'required_packages' in locals() else [],
+                    fetched_extensions,
+                    extra_includes,
+                    extra_lib_paths,
+                    extra_link_flags,
+                    project_root
+                )
+                with open(cmake_lists_path, "w") as f:
+                    f.write(content)
+            
+            build_dir = os.path.join(project_root, "build")
+            if clean and os.path.exists(build_dir):
+                try:
+                    shutil.rmtree(build_dir)
+                except Exception as e:
+                    self.log(f"Failed to clean build directory: {e}", "bold yellow")
+
+            if not os.path.exists(build_dir):
+                os.makedirs(build_dir)
+                
+            # Configure
+            cmake_args = ["cmake", "-S", project_root, "-B", build_dir]
+            
+            # Use vcpkg toolchain
+            vcpkg_toolchain = os.path.join(vcpkg_mgr.vcpkg_root, "scripts", "buildsystems", "vcpkg.cmake")
+            if os.path.exists(vcpkg_toolchain):
+                cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={vcpkg_toolchain}")
+            
+            if build_dll:
+                cmake_args.append("-DBUILD_SHARED_LIBS=ON")
+                
+            if os.name == 'nt' and shutil.which("mingw32-make"):
+                 cmake_args.extend(["-G", "MinGW Makefiles"])
+                 
+            self.log("Configuring CMake...")
+            try:
+                subprocess.run(cmake_args, cwd=build_dir, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                self.log(f"CMake Configuration Failed:\n{e.stderr}", "bold red")
+                return False
+                
+            # Build
+            self.log("Building...")
+            build_cmd = ["cmake", "--build", build_dir]
+            try:
+                 subprocess.run(build_cmd, cwd=build_dir, check=True)
+            except subprocess.CalledProcessError:
+                 self.log("Build failed.", "bold red")
+                 return False
+                 
+            self.log("Build successful!", "bold green")
+            
+            # Find executable
+            exe_name = os.path.splitext(os.path.basename(files[0]))[0]
+            if os.name == 'nt': exe_name += ".exe"
+            
+            output_exe = os.path.join(build_dir, exe_name)
+            # If not found, search
+            if not os.path.exists(output_exe):
+                for root, _, fs in os.walk(build_dir):
+                    if exe_name in fs:
+                        output_exe = os.path.join(root, exe_name)
+                        break
+            
+            if run and os.path.exists(output_exe):
+                 self.log("Running...", "bold")
+                 try:
+                    # Add vcpkg bin to path for DLLs
+                    env = os.environ.copy()
+                    bin_path = vcpkg_mgr.get_bin_path()
+                    if os.path.exists(bin_path):
+                        env["PATH"] = bin_path + os.pathsep + env["PATH"]
+                    
+                    subprocess.run([output_exe], cwd=os.path.dirname(output_exe), env=env)
+                 except Exception as e:
+                    self.log(f"Execution failed: {e}", "bold red")
+            elif run:
+                self.log(f"Executable {exe_name} not found in build directory.", "bold red")
+            
+            return True
+
         self.log("Compiling..." if not build_dll else "Compiling DLL...")
 
         if not files:
@@ -583,7 +791,7 @@ def main():
 
     # In CLI mode, the builder is provided with our CLI logger
     builder = CmpileBuilder(log_callback=cli_logger)
-    builder.build_and_run(args.files, args.compiler_flags, args.clean, run=True, build_dll=args.dll)
+    builder.build_and_run(args.files, args.compiler_flags, args.clean, run=True, build_dll=args.dll, use_cmake=args.cmake)
 
 if __name__ == "__main__":
     try:

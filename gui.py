@@ -105,6 +105,9 @@ class App(ctk.CTk):
         self.no_console_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Console")
         self.no_console_checkbox.pack(side="left", padx=10, pady=10)
 
+        self.cmake_checkbox = ctk.CTkCheckBox(self.options_frame, text="Use CMake")
+        self.cmake_checkbox.pack(side="left", padx=10, pady=10)
+
         self.build_btn = ctk.CTkButton(self.options_frame, text="Build & Run", command=self.start_build, fg_color="green", hover_color="darkgreen")
         self.build_btn.pack(side="right", padx=10, pady=10)
 
@@ -486,13 +489,15 @@ class App(ctk.CTk):
         # Parse internal flags from text
         clean_from_text = "--clean" in raw_flags
         dll_from_text = "--dll" in raw_flags
+        cmake_from_text = "--cmake" in raw_flags
 
         # Remove internal flags so they don't break the compiler
-        flags = raw_flags.replace("--clean", "").replace("--dll", "").strip()
+        flags = raw_flags.replace("--clean", "").replace("--dll", "").replace("--cmake", "").strip()
 
         # Combine with checkboxes
         clean = (self.clean_checkbox.get() == 1) or clean_from_text
         build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
+        use_cmake = (self.cmake_checkbox.get() == 1) or cmake_from_text
         
         # Check for compiler override
         compiler_override = self.compiler_path_entry.get().strip()
@@ -506,10 +511,10 @@ class App(ctk.CTk):
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll):
+    def run_build_process(self, flags, clean, build_dll, use_cmake):
         try:
             # Gather extensions info
             ext_includes = []
@@ -535,7 +540,8 @@ class App(ctk.CTk):
                 extra_lib_paths=ext_libs,
                 extra_link_flags=ext_flags,
                 build_dll=build_dll,
-                no_console=self.no_console_checkbox.get() == 1
+                no_console=self.no_console_checkbox.get() == 1,
+                use_cmake=use_cmake
             )
         except Exception as e:
             self.log_message(f"A critical error occurred: {e}", "error")
