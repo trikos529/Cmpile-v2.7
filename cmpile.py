@@ -39,17 +39,33 @@ def ensure_environment(log_func):
     setup_git_env()
 
     # Check GCC
-    if not (download_script.is_tool_on_path("clang") or download_script.is_tool_on_path("gcc")):
-        if not os.path.exists(GPP_EXE):
-            log_func("GCC not found. Installing...")
-            try:
-                download_script.install_gcc(log_func=log_func)
-            except Exception as e:
-                log_func(f"Failed to install GCC: {e}", "bold red")
-                raise e
+    has_gcc_or_clang = (download_script.is_tool_on_path("clang") or 
+               download_script.is_tool_on_path("gcc") or 
+               os.path.exists(os.path.join(GCC_BIN, "clang++.exe")) or
+               os.path.exists(os.path.join(GCC_BIN, "g++.exe")))
+    
+    # Simple check for cl on path
+    has_msvc = download_script.is_tool_on_path("cl")
+    
+    if not has_gcc_or_clang and not has_msvc:
+        choice = ui.get_compiler_choice()
+        if choice == "llvm":
+             log_func("Installing LLVM-MinGW...")
+             try:
+                 download_script.install_gcc(log_func=log_func)
+             except Exception as e:
+                 log_func(f"Failed to install LLVM-MinGW: {e}", "bold red")
+                 raise e
+        elif choice == "winlibs":
+             log_func("Installing WinLibs GCC...")
+             try:
+                 download_script.install_winlibs(log_func=log_func)
+             except Exception as e:
+                 log_func(f"Failed to install WinLibs: {e}", "bold red")
+                 raise e
 
-    # Add internal GCC to PATH if no system compiler is found
-    if not (download_script.is_tool_on_path("clang") or download_script.is_tool_on_path("gcc")):
+    # Add internal GCC to PATH if no system compiler is found and we have it
+    if os.path.exists(GCC_BIN) and not (download_script.is_tool_on_path("clang") or download_script.is_tool_on_path("gcc")):
         if GCC_BIN not in os.environ["PATH"]:
             os.environ["PATH"] = GCC_BIN + os.pathsep + os.environ["PATH"]
 
@@ -83,10 +99,26 @@ def get_compiler_for_file(filepath):
     if filepath.endswith(('.c', '.C')):
         if download_script.is_tool_on_path("clang"): return "clang"
         if download_script.is_tool_on_path("gcc"): return "gcc"
+        if download_script.is_tool_on_path("cl"): return "cl"
+        
+        # Internal fallback
+        if os.path.exists(GCC_EXE): return GCC_EXE
+        # WinLibs/MinGW might just have gcc.exe in the bin folder
+        gcc_fallback = os.path.join(GCC_BIN, "gcc.exe")
+        if os.path.exists(gcc_fallback): return gcc_fallback
+        
         return GCC_EXE
 
     if download_script.is_tool_on_path("clang++"): return "clang++"
     if download_script.is_tool_on_path("g++"): return "g++"
+    if download_script.is_tool_on_path("cl"): return "cl"
+    
+    # Internal fallback
+    if os.path.exists(GPP_EXE): return GPP_EXE
+    # WinLibs/MinGW might just have g++.exe
+    gpp_fallback = os.path.join(GCC_BIN, "g++.exe")
+    if os.path.exists(gpp_fallback): return gpp_fallback
+    
     return GPP_EXE
 
 def generate_cmakelists(project_name, source_files, required_packages, fetched_extensions, extra_includes, extra_lib_paths, extra_link_flags, output_dir):

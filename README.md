@@ -13,7 +13,10 @@
   Build: Run pyinstaller CmpileGUI.spec
   
 On the first run, Cmpile will:
-- Download a portable C++ compiler (LLVM-Mingw).
+- Ask you to choose a portable compiler:
+  - **LLVM-MinGW (Clang)**: Fast, modern, LLVM-based.
+  - **WinLibs (GCC)**: Classic MinGW-w64 GCC experience.
+- Download the selected portable compiler (no admin rights required).
 - Download and set up `vcpkg` for library management.
 - Download and add Git to PATH for cloning other dependencies.
 - Download and add Cmake to PATH for building dependencies and extensions.
@@ -36,6 +39,15 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.13
+ - Introducing the ability for users to select their compiler on first run.
+ - Cmpile now offers two portable compiler choices on first run:
+   - **LLVM-MinGW (Clang)**
+   - **WinLibs (GCC)**
+ - Stability improvements.
+ - Improved error handling.
+ - Addressed some known issues.
+ - Rebranded to Version 2.13.
  # Version 2.12
  - Added CMake build support with `--cmake`.
  - Added a new checkbox "Use CMake" to enable CMake build in the GUI.

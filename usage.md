@@ -7,9 +7,34 @@ Cmpile is a powerful tool designed to simplify the process of compiling and mana
 To get started with Cmpile, the process is simple. Simply, build the project as described in the README.md file and run the Cmpile.exe file you will find inside the dist folder to start using Cmpile.
 
 ## Usage
-Cmpile is easy and simple to use. You first need to add the files you want to compile to the file list. You can do this by clicking the "Add Files" button and selecting the desired files from your system. You can add mutliple files at once if needed. There is also the option to add a whole folder by clicking the "Add Folder" button. This will include all files within the selected folder to the file list.
-Once you have added the files, you can configure the compilation settings according to your needs. You can select the compiler options, and set any additional parameters required for your project. Once you have configured the settings, you can start the compilation process by clicking the "Compile" button. Additionally, you can build a DLL instead of an executable by checking the "Build DLL" checkbox before starting the compilation if you want to.
-The progress of the compilation will be displayed in the output window, allowing you to monitor the process in real-time. If any errors occur during compilation, they will be highlighted in the output window for easy identification and troubleshooting. All that's left is to wait for the compilation to complete. Once finished, you can find the compiled files in the specified output directory. And that's it! You've successfully used Cmpile to compile your project.
+Using Cmpile is straightforward. Follow these steps to compile your project:
+
+1.  **Add Source Files**:
+    *   Click the **"Add Files"** button to select specific C/C++ files.
+    *   Click the **"Add Folder"** button to include all source files within a directory recursively.
+
+2.  **Configure Build Settings**:
+    *   **Compiler Flags**: Enter any additional flags (e.g., `-O3 -Wall`) in the flags input field.
+    *   **Build Type**:
+        *   **Standard Build**: Compiles an executable (`.exe`).
+        *   **DLL Build**: Check the **"Build DLL"** checkbox to generate a Shared Library (`.dll`).
+        *   **CMake Build**: Check the **"Use CMake"** checkbox to build using CMake (generates `CMakeLists.txt` automatically).
+        *   **No Console**: Check **"No Console"** for GUI applications that shouldn't open a terminal window.
+
+3.  **Compile**:
+    *   Click the **"Compile"** button to start the build process.
+    *   On the **first run**, you will be prompted to choose a portable compiler:
+        *   **LLVM-MinGW (Clang)**: Modern and fast.
+        *   **WinLibs (GCC)**: Classic MinGW-w64 experience.
+
+4.  **Monitor Progress**:
+    *   The **Output Window** displays real-time logs.
+    *   Any errors or warnings will be highlighted for easy debugging.
+    *   Missing dependencies (detected via `#include`) will be automatically installed via `vcpkg`.
+
+5.  **Run**:
+    *   Upon success, the executable will be run automatically (unless it's a DLL build).
+    *   Output files are located in the `out/` folder (or `build/` for CMake).
 
 ## Features
 - **File Management**: Easily add and remove in your project.
@@ -22,6 +47,8 @@ The progress of the compilation will be displayed in the output window, allowing
 - **Full DLL Support**: Cmpile fully supports DLL files, allowing you to compile projects that rely on dynamic link libraries.
 - **Automatic Library Linking**: Cmpile automatically links fetched libraries when compiling executables, eliminating the need for manual configuration.
 - **Fetching Libraries**: Cmpile supports fetching libraries from GitHub using the `// @fetch` directive.
+- **CMake Support**: Cmpile now supports CMake projects with the `--cmake` option.
+- **Multiple Compilers**: Cmpile now supports multiple compilers allowing users to choose their compiler on first run.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.

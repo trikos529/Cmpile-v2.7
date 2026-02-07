@@ -149,6 +149,52 @@ def install_gcc(log_func=_default_log):
         log_func(f"Compiler installation failed: {e}", "bold red")
         raise e
 
+WINLIBS_URL = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-ucrt-r2/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64ucrt-12.0.0-r2.zip"
+
+def install_winlibs(log_func=_default_log):
+    if is_tool_on_path("g++") or is_tool_on_path("gcc"):
+        log_func("GCC is already available on PATH.", "bold blue")
+        return
+    
+    # Check if we have g++ in our internal dir
+    if os.path.exists(GCC_DIR) and os.path.exists(os.path.join(GCC_DIR, "bin", "g++.exe")):
+        return
+
+    os.makedirs(INTERNAL_DOWNLOADS, exist_ok=True)
+    zip_path = os.path.join(INTERNAL_DOWNLOADS, "winlibs.zip")
+    
+    if not os.path.exists(zip_path):
+        log_func(f"Downloading WinLibs GCC from {WINLIBS_URL}...")
+        try:
+            download_file(WINLIBS_URL, zip_path, log_func=log_func)
+        except Exception as e:
+            log_func(f"Failed to download WinLibs: {e}", "bold red")
+            raise e
+
+    log_func("Extracting WinLibs GCC...")
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(INTERNAL_DOWNLOADS)
+        
+        # WinLibs extracts to a 'mingw64' folder
+        extracted_path = os.path.join(INTERNAL_DOWNLOADS, "mingw64")
+        
+        if os.path.exists(extracted_path):
+            if os.path.exists(GCC_DIR):
+                shutil.rmtree(GCC_DIR)
+            
+            # Wait a bit for file locks
+            time.sleep(1)
+            shutil.move(extracted_path, GCC_DIR)
+        else:
+             raise Exception("Could not find 'mingw64' folder in extracted WinLibs archive")
+
+        log_func("WinLibs installed successfully.", "bold green")
+        os.remove(zip_path)
+    except Exception as e:
+        log_func(f"Failed to install WinLibs: {e}", "bold red")
+        raise e
+
 CMAKE_URL = "https://github.com/Kitware/CMake/releases/download/v4.2.3/cmake-4.2.3-windows-x86_64.zip"
 CMAKE_DIR = os.path.join(INTERNAL_DOWNLOADS, "cmake")
 
