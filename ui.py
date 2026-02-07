@@ -12,6 +12,7 @@ def parse_arguments():
     parser.add_argument("--compiler-flags", help="Additional compiler flags (quoted string).", default="")
     parser.add_argument("--clean", action="store_true", help="Force clean build (re-download/re-install if needed).")
     parser.add_argument("--dll", action="store_true", help="Build as a Shared Library (DLL)")
+    parser.add_argument("--no-console", action="store_true", help="Do not create a console window for the application (Windows only).")
     parser.add_argument("--cmake", action="store_true", help="Use CMake to build the project.")
     return parser.parse_args()
 

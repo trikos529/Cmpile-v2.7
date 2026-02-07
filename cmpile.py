@@ -121,7 +121,7 @@ def get_compiler_for_file(filepath):
     
     return GPP_EXE
 
-def generate_cmakelists(project_name, source_files, required_packages, fetched_extensions, extra_includes, extra_lib_paths, extra_link_flags, output_dir):
+def generate_cmakelists(project_name, source_files, required_packages, fetched_extensions, extra_includes, extra_lib_paths, extra_link_flags, output_dir, compiler_flags=None, no_console=False):
     """Generates a CMakeLists.txt file."""
     
     # Normalize paths
@@ -146,6 +146,12 @@ def generate_cmakelists(project_name, source_files, required_packages, fetched_e
         "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)",
         ""
     ]
+
+    # Add compiler flags
+    if compiler_flags:
+        cmake_lines.append(f'set(CMAKE_CXX_FLAGS "${{CMAKE_CXX_FLAGS}} {compiler_flags}")')
+        cmake_lines.append(f'set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} {compiler_flags}")')
+        cmake_lines.append("")
 
     # Add includes
     include_dirs = set()
@@ -206,7 +212,8 @@ def generate_cmakelists(project_name, source_files, required_packages, fetched_e
              cmake_targets.append(f"{pkg}::{pkg}")
 
     cmake_lines.append("")
-    cmake_lines.append(f"add_executable({project_name} {' '.join(rel_sources)})")
+    win32_flag = " WIN32" if no_console and os.name == 'nt' else ""
+    cmake_lines.append(f"add_executable({project_name}{win32_flag} {' '.join(rel_sources)})")
 
     if cmake_targets:
         cmake_lines.append(f"target_link_libraries({project_name} PRIVATE {' '.join(cmake_targets)})")
@@ -479,7 +486,9 @@ class CmpileBuilder:
                     extra_includes,
                     extra_lib_paths,
                     extra_link_flags,
-                    project_root
+                    project_root,
+                    compiler_flags=compiler_flags,
+                    no_console=no_console
                 )
                 with open(cmake_lists_path, "w") as f:
                     f.write(content)
@@ -823,7 +832,7 @@ def main():
 
     # In CLI mode, the builder is provided with our CLI logger
     builder = CmpileBuilder(log_callback=cli_logger)
-    builder.build_and_run(args.files, args.compiler_flags, args.clean, run=True, build_dll=args.dll, use_cmake=args.cmake)
+    builder.build_and_run(args.files, args.compiler_flags, args.clean, run=True, build_dll=args.dll, no_console=args.no_console, use_cmake=args.cmake)
 
 if __name__ == "__main__":
     try:
