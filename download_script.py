@@ -27,7 +27,10 @@ else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 INTERNAL_DOWNLOADS = os.path.join(BASE_DIR, "internal_downloads")
-GCC_DIR = os.path.join(INTERNAL_DOWNLOADS, "gcc")
+# Legacy GCC_DIR for backward compatibility or default checks
+GCC_DIR = os.path.join(INTERNAL_DOWNLOADS, "gcc") 
+LLVM_DIR = os.path.join(INTERNAL_DOWNLOADS, "llvm")
+WINLIBS_DIR = os.path.join(INTERNAL_DOWNLOADS, "winlibs")
 VCPKG_DIR = os.path.join(INTERNAL_DOWNLOADS, "vcpkg")
 
 # LLVM-MinGW (UCRT, 64-bit)
@@ -95,11 +98,9 @@ def install_git(log_func=_default_log):
     except Exception as e:
          log_func(f"Failed to extract Git: {e}", "bold red")
 
-def install_gcc(log_func=_default_log):
-    if is_tool_on_path("clang") or is_tool_on_path("gcc"):
-        log_func("An existing C/C++ compiler (clang/gcc) was found on PATH.", "bold blue")
-        return
-    if os.path.exists(GCC_DIR) and os.path.exists(os.path.join(GCC_DIR, "bin", "clang++.exe")):
+def install_llvm(log_func=_default_log):
+    # Check if we have clang in our internal dir
+    if os.path.exists(LLVM_DIR) and os.path.exists(os.path.join(LLVM_DIR, "bin", "clang++.exe")):
         return
 
     os.makedirs(INTERNAL_DOWNLOADS, exist_ok=True)
@@ -109,7 +110,7 @@ def install_gcc(log_func=_default_log):
         log_func(f"Downloading LLVM-MinGW from {GCC_URL}...")
         download_file(GCC_URL, zip_path, log_func=log_func)
 
-    log_func("Extracting Compiler...")
+    log_func("Extracting LLVM-MinGW...")
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(INTERNAL_DOWNLOADS)
@@ -126,14 +127,14 @@ def install_gcc(log_func=_default_log):
                 max_retries = 5
                 for i in range(max_retries):
                     try:
-                        if os.path.exists(GCC_DIR):
+                        if os.path.exists(LLVM_DIR):
                             def on_rm_error(func, path, exc_info):
                                 os.chmod(path, 0o777)
                                 func(path)
-                            shutil.rmtree(GCC_DIR, onerror=on_rm_error)
+                            shutil.rmtree(LLVM_DIR, onerror=on_rm_error)
 
                         time.sleep(0.5)
-                        shutil.move(extracted_path, GCC_DIR)
+                        shutil.move(extracted_path, LLVM_DIR)
                         break
                     except (PermissionError, OSError) as e:
                         if (isinstance(e, OSError) and e.errno not in [errno.EACCES, errno.ENOTEMPTY]) or i == max_retries - 1:
@@ -142,22 +143,22 @@ def install_gcc(log_func=_default_log):
         else:
             raise Exception(f"Extraction failed: Could not find llvm-mingw folder in {INTERNAL_DOWNLOADS}")
 
-        log_func("Compiler installed successfully.", "bold green")
+        log_func("LLVM-MinGW installed successfully.", "bold green")
         if os.path.exists(zip_path):
             os.remove(zip_path)
     except Exception as e:
-        log_func(f"Compiler installation failed: {e}", "bold red")
+        log_func(f"LLVM-MinGW installation failed: {e}", "bold red")
         raise e
+
+# Alias for backward compatibility if needed, though we prefer explicit names now
+def install_gcc(log_func=_default_log):
+    install_llvm(log_func)
 
 WINLIBS_URL = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-ucrt-r2/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64ucrt-12.0.0-r2.zip"
 
 def install_winlibs(log_func=_default_log):
-    if is_tool_on_path("g++") or is_tool_on_path("gcc"):
-        log_func("GCC is already available on PATH.", "bold blue")
-        return
-    
     # Check if we have g++ in our internal dir
-    if os.path.exists(GCC_DIR) and os.path.exists(os.path.join(GCC_DIR, "bin", "g++.exe")):
+    if os.path.exists(WINLIBS_DIR) and os.path.exists(os.path.join(WINLIBS_DIR, "bin", "g++.exe")):
         return
 
     os.makedirs(INTERNAL_DOWNLOADS, exist_ok=True)
@@ -180,12 +181,12 @@ def install_winlibs(log_func=_default_log):
         extracted_path = os.path.join(INTERNAL_DOWNLOADS, "mingw64")
         
         if os.path.exists(extracted_path):
-            if os.path.exists(GCC_DIR):
-                shutil.rmtree(GCC_DIR)
+            if os.path.exists(WINLIBS_DIR):
+                shutil.rmtree(WINLIBS_DIR)
             
             # Wait a bit for file locks
             time.sleep(1)
-            shutil.move(extracted_path, GCC_DIR)
+            shutil.move(extracted_path, WINLIBS_DIR)
         else:
              raise Exception("Could not find 'mingw64' folder in extracted WinLibs archive")
 

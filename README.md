@@ -31,6 +31,7 @@ On the first run, Cmpile will:
 - `--clean`: Force a re-check of the environment (useful if downloads get corrupted).
 - `--dll`: Build a DLL instead of an executable.
 - `--cmake`: Build the project using CMake. Generates CMakeLists.txt if missing.
+- `--compiler`: Specify the compiler to use (llvm, winlibs, or auto).
 - `-h, --help`: Show help message.
 
 ## How it Works
@@ -39,12 +40,20 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.14
+ - Introducing Seamless Compiler Switching.
+   - You can now switch between **LLVM-MinGW (Clang)** and **WinLibs (GCC)** instantly.
+   - Both compilers are now installed in isolated directories (`llvm/` and `winlibs/`) to allow coexistence.
+ - Added a new **CLI flag** `--compiler` to specify the compiler preference (e.g., `python cmpile.py main.cpp --compiler winlibs`).
+ - Updated the GUI with a compiler selection dropdown in the Build tab.
+ - Addressed some known issues with GUI input handling for compiler choice.
+ - Improved usage documentation and CLI help.
+ - Rebranded to Version 2.14.
  # Version 2.13
  - Introducing the ability for users to select their compiler on first run.
  - Cmpile now offers two portable compiler choices on first run:
    - **LLVM-MinGW (Clang)**
    - **WinLibs (GCC)**
- - Stability improvements.
  - Improved error handling.
  - Addressed some known issues.
  - Rebranded to Version 2.13.

@@ -108,6 +108,12 @@ class App(ctk.CTk):
         self.cmake_checkbox = ctk.CTkCheckBox(self.options_frame, text="Use CMake")
         self.cmake_checkbox.pack(side="left", padx=10, pady=10)
 
+        self.compiler_label = ctk.CTkLabel(self.options_frame, text="Compiler:")
+        self.compiler_label.pack(side="left", padx=(10, 5))
+        
+        self.compiler_option = ctk.CTkOptionMenu(self.options_frame, values=["Auto", "LLVM-MinGW (Clang)", "WinLibs (GCC)"])
+        self.compiler_option.pack(side="left", padx=5)
+
         self.build_btn = ctk.CTkButton(self.options_frame, text="Build & Run", command=self.start_build, fg_color="green", hover_color="darkgreen")
         self.build_btn.pack(side="right", padx=10, pady=10)
 
@@ -505,16 +511,22 @@ class App(ctk.CTk):
             # Need to pass this to builder.
             # Currently CmpileBuilder doesn't accept it easily, need to modify CmpileBuilder or modify os.environ
             os.environ["PATH"] = compiler_override + os.pathsep + os.environ["PATH"]
+            
+        # Get compiler preference
+        compiler_choice_str = self.compiler_option.get()
+        compiler_pref = None
+        if "LLVM" in compiler_choice_str: compiler_pref = "llvm"
+        elif "WinLibs" in compiler_choice_str: compiler_pref = "winlibs"
 
         self.build_btn.configure(state="disabled")
         self.log_textbox.configure(state="normal")
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll, use_cmake):
+    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref):
         try:
             # Gather extensions info
             ext_includes = []
@@ -541,7 +553,8 @@ class App(ctk.CTk):
                 extra_link_flags=ext_flags,
                 build_dll=build_dll,
                 no_console=self.no_console_checkbox.get() == 1,
-                use_cmake=use_cmake
+                use_cmake=use_cmake,
+                compiler_preference=compiler_pref
             )
         except Exception as e:
             self.log_message(f"A critical error occurred: {e}", "error")

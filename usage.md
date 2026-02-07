@@ -20,6 +20,8 @@ Using Cmpile is straightforward. Follow these steps to compile your project:
         *   **DLL Build**: Check the **"Build DLL"** checkbox to generate a Shared Library (`.dll`).
         *   **CMake Build**: Check the **"Use CMake"** checkbox to build using CMake (generates `CMakeLists.txt` automatically).
         *   **No Console**: Check **"No Console"** for GUI applications that shouldn't open a terminal window.
+    *   **Compiler Selection**:
+        *   Use the dropdown menu to choose between **Auto**, **LLVM-MinGW (Clang)**, or **WinLibs (GCC)**.
 
 3.  **Compile**:
     *   Click the **"Compile"** button to start the build process.
@@ -35,6 +37,30 @@ Using Cmpile is straightforward. Follow these steps to compile your project:
 5.  **Run**:
     *   Upon success, the executable will be run automatically (unless it's a DLL build).
     *   Output files are located in the `out/` folder (or `build/` for CMake).
+
+## CLI Usage
+You can also use Cmpile from the command line (Terminal).
+
+**Basic Syntax:**
+```bash
+python cmpile.py <files> [options]
+```
+
+**Options:**
+*   `--compiler <llvm|winlibs|auto>`: Specify which compiler to use. Overrides previous defaults.
+*   `--compiler-flags "<flags>"`: Add custom flags (e.g., `-O3`).
+*   `--cmake`: Use CMake build system.
+*   `--dll`: Build as a shared library.
+*   `--clean`: Force a clean build/re-download.
+
+**Examples:**
+```bash
+# Build with LLVM explicitly
+python cmpile.py main.cpp --compiler llvm
+
+# Build with WinLibs and custom flags
+python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
+```
 
 ## Features
 - **File Management**: Easily add and remove in your project.
