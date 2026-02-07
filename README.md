@@ -16,7 +16,7 @@ On the first run, Cmpile will:
 - Ask you to choose a portable compiler:
   - **LLVM-MinGW (Clang)**: Fast, modern, LLVM-based.
   - **WinLibs (GCC)**: Classic MinGW-w64 GCC experience.
-- Download the selected portable compiler (no admin rights required).
+- Download the selected portable compiler.
 - Download and set up `vcpkg` for library management.
 - Download and add Git to PATH for cloning other dependencies.
 - Download and add Cmake to PATH for building dependencies and extensions.
@@ -138,4 +138,5 @@ On the first run, Cmpile will:
   - For now, added two extensions but more will be added in later updates.
   - Added the ability to add custom extensions from local files.
   - Added a new "Clear Log Output" button to the GUI.
+
   - Rebranded to Version 2.2.
