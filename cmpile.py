@@ -66,10 +66,7 @@ def ensure_environment(log_func, compiler_preference=None):
                    os.path.exists(os.path.join(GCC_BIN, "clang++.exe")) or
                    os.path.exists(os.path.join(GCC_BIN, "g++.exe")))
         
-        # Simple check for cl on path
-        has_msvc = download_script.is_tool_on_path("cl")
-        
-        if not has_gcc_or_clang and not has_msvc:
+        if not has_gcc_or_clang:
             choice = ui.get_compiler_choice(log_func=log_func)
             if choice == "llvm":
                  log_func("Installing LLVM-MinGW...")
@@ -164,7 +161,6 @@ def get_compiler_for_file(filepath, preference=None):
     if not is_cpp:
         if download_script.is_tool_on_path("clang"): return "clang"
         if download_script.is_tool_on_path("gcc"): return "gcc"
-        if download_script.is_tool_on_path("cl"): return "cl"
         if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")
         if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")
         # Legacy fallback
@@ -174,7 +170,6 @@ def get_compiler_for_file(filepath, preference=None):
 
     if download_script.is_tool_on_path("clang++"): return "clang++"
     if download_script.is_tool_on_path("g++"): return "g++"
-    if download_script.is_tool_on_path("cl"): return "cl"
     if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")
     if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")
     # Legacy fallback
