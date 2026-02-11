@@ -41,6 +41,13 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.15
+ - Improved CMake integration:
+   - Added safety checks: Cmpile will now respect existing `CMakeLists.txt` files and only overwrite those it generated.
+   - Added support for `--compiler-flags` in CMake builds.
+   - Added support for `--no-console` in CMake builds (Windows).
+  - Fixed an issue where Cmpile would ask to redownload compilers if they were already installed.
+ - Rebranded to Version 2.15.
  # Version 2.14
  - Introducing Seamless Compiler Switching.
    - You can now switch between **LLVM-MinGW (Clang)** and **WinLibs (GCC)** instantly.
