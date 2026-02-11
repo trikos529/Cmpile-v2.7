@@ -15,6 +15,28 @@ def is_tool_on_path(name):
     """Check whether `name` is on PATH and marked as executable."""
     return shutil.which(name) is not None
 
+def get_install_bin_path(install_dir):
+    """
+    Finds the 'bin' directory within install_dir.
+    Handles both direct structure (install_dir/bin)
+    and nested structure (install_dir/subdir/bin).
+    """
+    if not os.path.exists(install_dir):
+        return None
+
+    # 1. Check direct
+    direct_bin = os.path.join(install_dir, "bin")
+    if os.path.isdir(direct_bin):
+        return direct_bin
+    
+    # 2. Check nested (one level deep)
+    for item in os.listdir(install_dir):
+        nested_bin = os.path.join(install_dir, item, "bin")
+        if os.path.isdir(nested_bin):
+            return nested_bin
+    
+    return None
+
 def _default_log(message, style=""):
     # Helper for standalone script running
     console.print(f"[{style}]{message}[/{style}]" if style else message)
@@ -132,6 +154,17 @@ def install_llvm(log_func=_default_log):
                                 os.chmod(path, 0o777)
                                 func(path)
                             shutil.rmtree(LLVM_DIR, onerror=on_rm_error)
+                        
+                        # Verify it's gone
+                        if os.path.exists(LLVM_DIR):
+                             time.sleep(1)
+                             try:
+                                 shutil.rmtree(LLVM_DIR)
+                             except:
+                                 pass
+                                 
+                        if os.path.exists(LLVM_DIR):
+                             raise OSError(f"Could not remove existing directory {LLVM_DIR}")
 
                         time.sleep(0.5)
                         shutil.move(extracted_path, LLVM_DIR)
@@ -182,7 +215,21 @@ def install_winlibs(log_func=_default_log):
         
         if os.path.exists(extracted_path):
             if os.path.exists(WINLIBS_DIR):
-                shutil.rmtree(WINLIBS_DIR)
+                def on_rm_error(func, path, exc_info):
+                    os.chmod(path, 0o777)
+                    func(path)
+                shutil.rmtree(WINLIBS_DIR, onerror=on_rm_error)
+            
+            # Verify it's gone
+            if os.path.exists(WINLIBS_DIR):
+                 time.sleep(1)
+                 try:
+                     shutil.rmtree(WINLIBS_DIR)
+                 except:
+                     pass
+                     
+            if os.path.exists(WINLIBS_DIR):
+                 raise OSError(f"Could not remove existing directory {WINLIBS_DIR}")
             
             # Wait a bit for file locks
             time.sleep(1)

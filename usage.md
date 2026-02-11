@@ -52,6 +52,7 @@ python cmpile.py <files> [options]
 *   `--cmake`: Use CMake build system.
 *   `--dll`: Build as a shared library.
 *   `--clean`: Force a clean build/re-download.
+*   `--no-console`: Build a GUI application that doesn't open a terminal window.
 
 **Examples:**
 ```bash
@@ -75,6 +76,7 @@ python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
 - **Fetching Libraries**: Cmpile supports fetching libraries from GitHub using the `// @fetch` directive.
 - **CMake Support**: Cmpile now supports CMake projects with the `--cmake` option.
 - **Multiple Compilers**: Cmpile now supports multiple compilers allowing users to choose their compiler on first run.
+- **No Console Option**: Cmpile now supports building GUI applications that don't open a terminal window with the `--no-console` option.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.

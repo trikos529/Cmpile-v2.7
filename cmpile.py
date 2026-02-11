@@ -40,8 +40,10 @@ def ensure_environment(log_func, compiler_preference=None):
 
     # Check for compiler based on preference
     if compiler_preference == "llvm":
-        if not (download_script.is_tool_on_path("clang") or 
-                (os.path.exists(download_script.LLVM_DIR) and os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")))):
+        llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+        has_llvm = llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang++.exe"))
+        
+        if not (download_script.is_tool_on_path("clang") or has_llvm):
              log_func("LLVM-MinGW (Clang) selected but not found. Installing...")
              try:
                  download_script.install_llvm(log_func=log_func)
@@ -49,8 +51,10 @@ def ensure_environment(log_func, compiler_preference=None):
                  log_func(f"Failed to install LLVM-MinGW: {e}", "bold red")
                  raise e
     elif compiler_preference == "winlibs":
-        if not (download_script.is_tool_on_path("g++") or 
-                (os.path.exists(download_script.WINLIBS_DIR) and os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")))):
+        winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+        has_winlibs = winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "g++.exe"))
+
+        if not (download_script.is_tool_on_path("g++") or has_winlibs):
              log_func("WinLibs (GCC) selected but not found. Installing...")
              try:
                  download_script.install_winlibs(log_func=log_func)
@@ -59,10 +63,13 @@ def ensure_environment(log_func, compiler_preference=None):
                  raise e
     else:
         # Check GCC
+        llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+        winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+        
         has_gcc_or_clang = (download_script.is_tool_on_path("clang") or 
                    download_script.is_tool_on_path("gcc") or 
-                   os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")) or
-                   os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")) or
+                   (llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang++.exe"))) or
+                   (winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "g++.exe"))) or
                    os.path.exists(os.path.join(GCC_BIN, "clang++.exe")) or
                    os.path.exists(os.path.join(GCC_BIN, "g++.exe")))
         
@@ -88,26 +95,28 @@ def ensure_environment(log_func, compiler_preference=None):
     
     internal_paths_to_add = []
     
-    if os.path.exists(download_script.LLVM_DIR):
-        internal_paths_to_add.append(os.path.join(download_script.LLVM_DIR, "bin"))
-    if os.path.exists(download_script.WINLIBS_DIR):
-        internal_paths_to_add.append(os.path.join(download_script.WINLIBS_DIR, "bin"))
+    llvm_bin_found = download_script.get_install_bin_path(download_script.LLVM_DIR)
+    if llvm_bin_found:
+        internal_paths_to_add.append(llvm_bin_found)
+        
+    winlibs_bin_found = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+    if winlibs_bin_found:
+        internal_paths_to_add.append(winlibs_bin_found)
+        
     if os.path.exists(GCC_BIN):
         internal_paths_to_add.append(GCC_BIN)
 
     # Sort based on preference
     if compiler_preference == "llvm":
         # Move LLVM to front
-        llvm_bin = os.path.join(download_script.LLVM_DIR, "bin")
-        if llvm_bin in internal_paths_to_add:
-            internal_paths_to_add.remove(llvm_bin)
-            internal_paths_to_add.insert(0, llvm_bin)
+        if llvm_bin_found and llvm_bin_found in internal_paths_to_add:
+            internal_paths_to_add.remove(llvm_bin_found)
+            internal_paths_to_add.insert(0, llvm_bin_found)
     elif compiler_preference == "winlibs":
         # Move WinLibs to front
-        winlibs_bin = os.path.join(download_script.WINLIBS_DIR, "bin")
-        if winlibs_bin in internal_paths_to_add:
-            internal_paths_to_add.remove(winlibs_bin)
-            internal_paths_to_add.insert(0, winlibs_bin)
+        if winlibs_bin_found and winlibs_bin_found in internal_paths_to_add:
+            internal_paths_to_add.remove(winlibs_bin_found)
+            internal_paths_to_add.insert(0, winlibs_bin_found)
 
     for p in internal_paths_to_add:
         if p not in os.environ["PATH"]:
@@ -146,23 +155,32 @@ def get_compiler_for_file(filepath, preference=None):
     if preference == "llvm":
         if is_cpp:
             if download_script.is_tool_on_path("clang++"): return "clang++"
-            if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")
+            llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+            if llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang++.exe")): return os.path.join(llvm_bin, "clang++.exe")
         else:
             if download_script.is_tool_on_path("clang"): return "clang"
-            if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")
+            llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+            if llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang.exe")): return os.path.join(llvm_bin, "clang.exe")
     elif preference == "winlibs":
         if is_cpp:
             if download_script.is_tool_on_path("g++"): return "g++"
-            if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")
+            winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+            if winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "g++.exe")): return os.path.join(winlibs_bin, "g++.exe")
         else:
             if download_script.is_tool_on_path("gcc"): return "gcc"
-            if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")
+            winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+            if winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "gcc.exe")): return os.path.join(winlibs_bin, "gcc.exe")
 
     if not is_cpp:
         if download_script.is_tool_on_path("clang"): return "clang"
         if download_script.is_tool_on_path("gcc"): return "gcc"
-        if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang.exe")
-        if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "gcc.exe")
+        
+        llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+        if llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang.exe")): return os.path.join(llvm_bin, "clang.exe")
+        
+        winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+        if winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "gcc.exe")): return os.path.join(winlibs_bin, "gcc.exe")
+        
         # Legacy fallback
         if os.path.exists(os.path.join(GCC_BIN, "clang.exe")): return os.path.join(GCC_BIN, "clang.exe")
         if os.path.exists(os.path.join(GCC_BIN, "gcc.exe")): return os.path.join(GCC_BIN, "gcc.exe")
@@ -170,8 +188,13 @@ def get_compiler_for_file(filepath, preference=None):
 
     if download_script.is_tool_on_path("clang++"): return "clang++"
     if download_script.is_tool_on_path("g++"): return "g++"
-    if os.path.exists(os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")): return os.path.join(download_script.LLVM_DIR, "bin", "clang++.exe")
-    if os.path.exists(os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")): return os.path.join(download_script.WINLIBS_DIR, "bin", "g++.exe")
+    
+    llvm_bin = download_script.get_install_bin_path(download_script.LLVM_DIR)
+    if llvm_bin and os.path.exists(os.path.join(llvm_bin, "clang++.exe")): return os.path.join(llvm_bin, "clang++.exe")
+    
+    winlibs_bin = download_script.get_install_bin_path(download_script.WINLIBS_DIR)
+    if winlibs_bin and os.path.exists(os.path.join(winlibs_bin, "g++.exe")): return os.path.join(winlibs_bin, "g++.exe")
+    
     # Legacy fallback
     if os.path.exists(os.path.join(GCC_BIN, "clang++.exe")): return os.path.join(GCC_BIN, "clang++.exe")
     if os.path.exists(os.path.join(GCC_BIN, "g++.exe")): return os.path.join(GCC_BIN, "g++.exe")

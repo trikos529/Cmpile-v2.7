@@ -30,10 +30,11 @@ def get_compiler_choice(log_func=None):
         return "llvm"
 
     console.print("[yellow]No compiler found. Please select one to install:[/yellow]")
+    console.print("[bold yellow]Note: You can later change compiler by using the --compiler flag[/bold yellow]")
     console.print("1. [bold green]LLVM-MinGW (Clang)[/bold green] - Portable Clang-based compiler. Fast and modern.")
     console.print("2. [bold blue]WinLibs (GCC)[/bold blue] - Portable GCC-based compiler. Classic MinGW-w64 experience.")
     
-    choice = Prompt.ask("Enter choice", choices=["1", "2"], default="1")
+    choice = Prompt.ask("Enter choice", choices=["1", "2"])
     return "llvm" if choice == "1" else "winlibs"
 
 def display_header():
