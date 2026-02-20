@@ -28,7 +28,8 @@ On the first run, Cmpile will:
 ### Options
 - `--compiler-flags "..."`: Pass extra flags to the compiler.
   - Example: `python cmpile.py main.cpp --compiler-flags "-O3 -Wall"`
-- `--clean`: Force a re-check of the environment (useful if downloads get corrupted).
+- `--clean`: Force a clean build (remove build artifacts).
+- `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg).
 - `--dll`: Build a DLL instead of an executable.
 - `--cmake`: Build the project using CMake. Generates CMakeLists.txt if missing.
 - `--compiler`: Specify the compiler to use (llvm, winlibs, or auto).
@@ -41,6 +42,11 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
 
 ## What's New
+ # Version 2.16
+ - Added a new flag `--reinstall-tools` to force re-installation of internal tools (compilers, git, vcpkg, etc.).
+ - Updated `--clean` flag behavior to only remove build artifacts (out/ and build/ directories), making it faster for standard clean builds.
+ - Updated the GUI to support the new `--reinstall-tools` flag (can be passed via the "Linker Flags" input).
+ - Rebranded to Version 2.16.
  # Version 2.15
  - Improved CMake integration:
    - Added safety checks: Cmpile will now respect existing `CMakeLists.txt` files and only overwrite those it generated.

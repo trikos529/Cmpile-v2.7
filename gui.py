@@ -483,6 +483,9 @@ class App(ctk.CTk):
                 "Cmpile V2 Help:\n\n"
                 "Internal Options (handled by GUI):\n"
                 "  --clean   : Force a clean build (remove out/ folder)\n"
+                "  --reinstall-tools : Force re-installation of internal tools\n"
+                "  --cmake     : Use CMake instead of Makefile\n"
+                "  --no-console : Build without console window (Windows only)\n"
                 "  --dll     : Build as a Shared Library (DLL)\n"
                 "  --help    : Show this help message\n\n"
                 "Compiler Flags (passed directly to GCC/Clang):\n"
@@ -494,14 +497,16 @@ class App(ctk.CTk):
 
         # Parse internal flags from text
         clean_from_text = "--clean" in raw_flags
+        reinstall_from_text = "--reinstall-tools" in raw_flags
         dll_from_text = "--dll" in raw_flags
         cmake_from_text = "--cmake" in raw_flags
 
         # Remove internal flags so they don't break the compiler
-        flags = raw_flags.replace("--clean", "").replace("--dll", "").replace("--cmake", "").strip()
+        flags = raw_flags.replace("--clean", "").replace("--reinstall-tools", "").replace("--dll", "").replace("--cmake", "").strip()
 
         # Combine with checkboxes
         clean = (self.clean_checkbox.get() == 1) or clean_from_text
+        reinstall = reinstall_from_text
         build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
         use_cmake = (self.cmake_checkbox.get() == 1) or cmake_from_text
         
@@ -523,10 +528,10 @@ class App(ctk.CTk):
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref):
+    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall):
         try:
             # Gather extensions info
             ext_includes = []
@@ -554,7 +559,8 @@ class App(ctk.CTk):
                 build_dll=build_dll,
                 no_console=self.no_console_checkbox.get() == 1,
                 use_cmake=use_cmake,
-                compiler_preference=compiler_pref
+                compiler_preference=compiler_pref,
+                reinstall_tools=reinstall
             )
         except Exception as e:
             self.log_message(f"A critical error occurred: {e}", "error")

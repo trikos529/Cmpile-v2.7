@@ -51,7 +51,8 @@ python cmpile.py <files> [options]
 *   `--compiler-flags "<flags>"`: Add custom flags (e.g., `-O3`).
 *   `--cmake`: Use CMake build system.
 *   `--dll`: Build as a shared library.
-*   `--clean`: Force a clean build/re-download.
+*   `--clean`: Force a clean build (remove build artifacts).
+*   `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg, etc).
 *   `--no-console`: Build a GUI application that doesn't open a terminal window.
 
 **Examples:**
@@ -74,9 +75,10 @@ python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
 - **Full DLL Support**: Cmpile fully supports DLL files, allowing you to compile projects that rely on dynamic link libraries.
 - **Automatic Library Linking**: Cmpile automatically links fetched libraries when compiling executables, eliminating the need for manual configuration.
 - **Fetching Libraries**: Cmpile supports fetching libraries from GitHub using the `// @fetch` directive.
-- **CMake Support**: Cmpile now supports CMake projects with the `--cmake` option.
-- **Multiple Compilers**: Cmpile now supports multiple compilers allowing users to choose their compiler on first run.
-- **No Console Option**: Cmpile now supports building GUI applications that don't open a terminal window with the `--no-console` option.
+- **Local Libraries**: Cmpile supports adding local libraries to your project by using the `//$[path](name)` directive.
+- **CMake Support**: Cmpile supports CMake projects with the `--cmake` option.
+- **Multiple Compilers**: Cmpile supports multiple compilers allowing users to choose their compiler on first run.
+- **No Console Option**: Cmpile supports building GUI applications that don't open a terminal window with the `--no-console` option.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.

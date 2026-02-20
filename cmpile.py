@@ -30,8 +30,29 @@ def setup_git_env():
             return True
     return False
 
-def ensure_environment(log_func, compiler_preference=None):
+def ensure_environment(log_func, compiler_preference=None, reinstall_tools=False):
     """Checks and sets up GCC, Git and vcpkg."""
+    if reinstall_tools:
+        log_func("Forcing re-installation of internal tools...", "bold yellow")
+        dirs_to_remove = [
+            download_script.GIT_DIR,
+            download_script.LLVM_DIR,
+            download_script.WINLIBS_DIR,
+            download_script.CMAKE_DIR,
+            download_script.VCPKG_DIR
+        ]
+        for d in dirs_to_remove:
+            if os.path.exists(d):
+                try:
+                    # Helper to remove read-only files
+                    def on_rm_error(func, path, exc_info):
+                        os.chmod(path, 0o777)
+                        func(path)
+                    shutil.rmtree(d, onerror=on_rm_error)
+                    log_func(f"Removed {d}")
+                except Exception as e:
+                    log_func(f"Failed to remove {d}: {e}", "bold red")
+
     log_func("Checking environment...")
 
     # Check/Install Git first
@@ -391,7 +412,7 @@ class CmpileBuilder:
             except Exception:
                 pass
 
-    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False, use_cmake=False, compiler_preference=None):
+    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False, use_cmake=False, compiler_preference=None, reinstall_tools=False):
 
         expanded_files = []
         for path in source_files:
@@ -415,7 +436,7 @@ class CmpileBuilder:
 
         # 1. Environment Setup
         try:
-            vcpkg_mgr = ensure_environment(self.log, compiler_preference=compiler_preference)
+            vcpkg_mgr = ensure_environment(self.log, compiler_preference=compiler_preference, reinstall_tools=reinstall_tools)
         except Exception as e:
             self.log(f"Environment setup failed: {e}", "bold red")
             return False
@@ -959,7 +980,8 @@ def main():
         build_dll=args.dll, 
         no_console=args.no_console, 
         use_cmake=args.cmake,
-        compiler_preference=args.compiler
+        compiler_preference=args.compiler,
+        reinstall_tools=args.reinstall_tools
     )
 
 if __name__ == "__main__":
