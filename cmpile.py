@@ -976,7 +976,7 @@ def main():
         args.files, 
         args.compiler_flags, 
         args.clean, 
-        run=True, 
+        run=not args.no_run, 
         build_dll=args.dll, 
         no_console=args.no_console, 
         use_cmake=args.cmake,

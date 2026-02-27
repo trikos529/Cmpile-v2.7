@@ -105,6 +105,9 @@ class App(ctk.CTk):
         self.no_console_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Console")
         self.no_console_checkbox.pack(side="left", padx=10, pady=10)
 
+        self.no_run_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Run")
+        self.no_run_checkbox.pack(side="left", padx=10, pady=10)
+
         self.cmake_checkbox = ctk.CTkCheckBox(self.options_frame, text="Use CMake")
         self.cmake_checkbox.pack(side="left", padx=10, pady=10)
 
@@ -509,6 +512,7 @@ class App(ctk.CTk):
         reinstall = reinstall_from_text
         build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
         use_cmake = (self.cmake_checkbox.get() == 1) or cmake_from_text
+        no_run = (self.no_run_checkbox.get() == 1)
         
         # Check for compiler override
         compiler_override = self.compiler_path_entry.get().strip()
@@ -528,10 +532,10 @@ class App(ctk.CTk):
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall):
+    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run):
         try:
             # Gather extensions info
             ext_includes = []
@@ -552,7 +556,7 @@ class App(ctk.CTk):
                 self.source_files, 
                 compiler_flags=flags, 
                 clean=clean, 
-                run=True,
+                run=not no_run,
                 extra_includes=ext_includes,
                 extra_lib_paths=ext_libs,
                 extra_link_flags=ext_flags,

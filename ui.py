@@ -15,6 +15,7 @@ def parse_arguments():
     parser.add_argument("--reinstall-tools", action="store_true", help="Force re-installation of internal tools (compilers, git, etc).")
     parser.add_argument("--dll", action="store_true", help="Build as a Shared Library (DLL)")
     parser.add_argument("--no-console", action="store_true", help="Do not create a console window for the application (Windows only).")
+    parser.add_argument("--no-run", action="store_true", help="Compile only, do not run the executable.")
     parser.add_argument("--cmake", action="store_true", help="Use CMake to build the project.")
     parser.add_argument("--compiler", choices=['llvm', 'winlibs', 'auto'], default=None, help="Specify compiler preference (llvm or winlibs).")
     return parser.parse_args()
