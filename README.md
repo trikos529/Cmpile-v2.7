@@ -34,14 +34,23 @@ On the first run, Cmpile will:
 - `--cmake`: Build the project using CMake. Generates CMakeLists.txt if missing.
 - `--compiler`: Specify the compiler to use (llvm, winlibs, or auto).
 - `--no-console`: Build an application without a terminal window.
+- `--no-run`: Compile only, do not run the executable.
+- `--install-pkg <name>`: Manually install a vcpkg package by name.
 - `-h, --help`: Show help message.
 
 ## How it Works
 
 - **Infrastructure**: All tools (compiler, git, vcpkg, cmake) are downloaded into the `internal_downloads` folder. To uninstall, simply delete that folder.
-- **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg.
+- **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg. You can also use the `// @vcpkg <package>` directive in your source code to explicitly request a package.
 
 ## What's New
+ # Version 2.17
+ - Added support for explicit vcpkg package installation via the `// @vcpkg <package>` directive in source code.
+ - Added a new CLI flag `--install-pkg <name>` to manually install vcpkg packages.
+ - Added a new flag `--no-run` to compile the project without executing it.
+ - Updated the GUI to support `--no-run` and `--install-pkg` via the "Compiler Flags" input.
+ - Updated dependencies to their latest versions.
+ - Rebranded to Version 2.17.
  # Version 2.16
  - Added a new flag `--reinstall-tools` to force re-installation of internal tools (compilers, git, vcpkg, etc.).
  - Updated `--clean` flag behavior to only remove build artifacts (out/ and build/ directories), making it faster for standard clean builds.

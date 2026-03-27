@@ -412,7 +412,7 @@ class CmpileBuilder:
             except Exception:
                 pass
 
-    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, build_dll=False, no_console=False, use_cmake=False, compiler_preference=None, reinstall_tools=False):
+    def build_and_run(self, source_files, compiler_flags=None, clean=False, run=True, extra_includes=None, extra_lib_paths=None, extra_link_flags=None, extra_packages=None, build_dll=False, no_console=False, use_cmake=False, compiler_preference=None, reinstall_tools=False):
 
         expanded_files = []
         for path in source_files:
@@ -489,6 +489,18 @@ class CmpileBuilder:
                     self.log(f"Failed to load local library '{name}': Path '{path}' not found.", "bold red")
                     return False
 
+        # 1.7 Vcpkg Directives
+        vcpkg_directives = set()
+        for src in files:
+            pkgs = package_finder.find_vcpkg_directives(src)
+            for pkg in pkgs:
+                self.log(f"Detected vcpkg directive: {pkg}")
+                vcpkg_directives.add(pkg)
+        
+        if extra_packages:
+            for pkg in extra_packages:
+                vcpkg_directives.add(pkg)
+
         # Merge local extensions
         fetched_extensions.extend(local_lib_map.values())
         
@@ -540,6 +552,10 @@ class CmpileBuilder:
                 external_includes.add(inc)
 
         required_packages = package_finder.map_includes_to_packages(external_includes)
+        
+        # Merge directives
+        for pkg in vcpkg_directives:
+            required_packages.add(pkg)
 
         if required_packages:
             # Filter out packages that are already being linked explicitly via extensions
@@ -977,6 +993,7 @@ def main():
         args.compiler_flags, 
         args.clean, 
         run=not args.no_run, 
+        extra_packages=args.install_pkg,
         build_dll=args.dll, 
         no_console=args.no_console, 
         use_cmake=args.cmake,

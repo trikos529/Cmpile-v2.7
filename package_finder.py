@@ -105,6 +105,25 @@ def find_local_libs(file_path):
         print(f"Error reading {file_path} for local libs: {e}")
     return libs
 
+def find_vcpkg_directives(file_path):
+    """
+    Scans a C/C++ file for vcpkg directives.
+    Format: // @vcpkg <package_name>
+    Returns a list of package names.
+    """
+    packages = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Regex for // @vcpkg <package>
+                match = re.search(r'//\s*@vcpkg\s+([^\s]+)', line)
+                if match:
+                    pkg = match.group(1).strip()
+                    packages.append(pkg)
+    except Exception as e:
+        print(f"Error reading {file_path} for vcpkg directives: {e}")
+    return packages
+
 def map_includes_to_packages(includes):
     """
     Maps a list of include paths to potential vcpkg package names.

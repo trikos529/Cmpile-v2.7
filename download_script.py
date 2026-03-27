@@ -57,7 +57,7 @@ VCPKG_DIR = os.path.join(INTERNAL_DOWNLOADS, "vcpkg")
 
 # LLVM-MinGW (UCRT, 64-bit)
 # Provides Clang/LLD with MinGW-w64 runtime.
-GCC_URL = "https://github.com/mstorsjo/llvm-mingw/releases/download/20251216/llvm-mingw-20251216-ucrt-x86_64.zip"
+GCC_URL = "https://github.com/mstorsjo/llvm-mingw/releases/download/20260324/llvm-mingw-20260324-ucrt-x86_64.zip"
 # MinGit
 GIT_URL = "https://github.com/git-for-windows/git/releases/download/v2.53.0.windows.1/MinGit-2.53.0-64-bit.zip"
 
@@ -243,7 +243,7 @@ def install_winlibs(log_func=_default_log):
         log_func(f"Failed to install WinLibs: {e}", "bold red")
         raise e
 
-CMAKE_URL = "https://github.com/Kitware/CMake/releases/download/v4.2.3/cmake-4.2.3-windows-x86_64.zip"
+CMAKE_URL = "https://github.com/Kitware/CMake/releases/download/v4.3.0/cmake-4.3.0-windows-x86_64.zip"
 CMAKE_DIR = os.path.join(INTERNAL_DOWNLOADS, "cmake")
 
 def install_cmake(log_func=_default_log):

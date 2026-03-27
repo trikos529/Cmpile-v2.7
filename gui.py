@@ -105,9 +105,6 @@ class App(ctk.CTk):
         self.no_console_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Console")
         self.no_console_checkbox.pack(side="left", padx=10, pady=10)
 
-        self.no_run_checkbox = ctk.CTkCheckBox(self.options_frame, text="No Run")
-        self.no_run_checkbox.pack(side="left", padx=10, pady=10)
-
         self.cmake_checkbox = ctk.CTkCheckBox(self.options_frame, text="Use CMake")
         self.cmake_checkbox.pack(side="left", padx=10, pady=10)
 
@@ -489,6 +486,8 @@ class App(ctk.CTk):
                 "  --reinstall-tools : Force re-installation of internal tools\n"
                 "  --cmake     : Use CMake instead of Makefile\n"
                 "  --no-console : Build without console window (Windows only)\n"
+                "  --no-run  : Compile only, do not run the executable\n"
+                "  --install-pkg <name> : Install a vcpkg package by name\n"
                 "  --dll     : Build as a Shared Library (DLL)\n"
                 "  --help    : Show this help message\n\n"
                 "Compiler Flags (passed directly to GCC/Clang):\n"
@@ -503,17 +502,26 @@ class App(ctk.CTk):
         reinstall_from_text = "--reinstall-tools" in raw_flags
         dll_from_text = "--dll" in raw_flags
         cmake_from_text = "--cmake" in raw_flags
+        no_run_from_text = "--no-run" in raw_flags
 
         # Remove internal flags so they don't break the compiler
-        flags = raw_flags.replace("--clean", "").replace("--reinstall-tools", "").replace("--dll", "").replace("--cmake", "").strip()
+        flags = raw_flags.replace("--clean", "").replace("--reinstall-tools", "").replace("--dll", "").replace("--cmake", "").replace("--no-run", "").strip()
 
         # Combine with checkboxes
         clean = (self.clean_checkbox.get() == 1) or clean_from_text
         reinstall = reinstall_from_text
         build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
         use_cmake = (self.cmake_checkbox.get() == 1) or cmake_from_text
-        no_run = (self.no_run_checkbox.get() == 1)
+        no_run = no_run_from_text
         
+        # Check for --install-pkg in raw_flags
+        extra_packages = []
+        install_pkg_matches = re.findall(r'--install-pkg\s+([^\s]+)', raw_flags)
+        if install_pkg_matches:
+            extra_packages.extend(install_pkg_matches)
+            # Remove --install-pkg from flags
+            flags = re.sub(r'--install-pkg\s+[^\s]+', '', flags).strip()
+
         # Check for compiler override
         compiler_override = self.compiler_path_entry.get().strip()
         if compiler_override:
@@ -532,10 +540,10 @@ class App(ctk.CTk):
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run):
+    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages):
         try:
             # Gather extensions info
             ext_includes = []
@@ -560,6 +568,7 @@ class App(ctk.CTk):
                 extra_includes=ext_includes,
                 extra_lib_paths=ext_libs,
                 extra_link_flags=ext_flags,
+                extra_packages=extra_packages,
                 build_dll=build_dll,
                 no_console=self.no_console_checkbox.get() == 1,
                 use_cmake=use_cmake,

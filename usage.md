@@ -54,6 +54,8 @@ python cmpile.py <files> [options]
 *   `--clean`: Force a clean build (remove build artifacts).
 *   `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg, etc).
 *   `--no-console`: Build a GUI application that doesn't open a terminal window.
+*   `--no-run`: Compile only, do not run the executable.
+*   `--install-pkg <name>`: Manually install a vcpkg package by name.
 
 **Examples:**
 ```bash
@@ -62,6 +64,12 @@ python cmpile.py main.cpp --compiler llvm
 
 # Build with WinLibs and custom flags
 python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
+
+# Compile only (no run)
+python cmpile.py main.cpp --no-run
+
+# Install a vcpkg package manually
+python cmpile.py main.cpp --install-pkg sqlite3
 ```
 
 ## Features
@@ -70,7 +78,7 @@ python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
 - **Real-time Output**: Monitor the compilation progress and view errors as they occur.
 - **User-friendly Interface**: Intuitive design that makes it easy for users of all skill levels to navigate and use the tool.
 - **Extension Management**: Manage and install extensions to extend the use and functionality of Cmpile.
-- **Package Management**: Manage and install packages according to your needs for your projects thenks to vcpkg.
+- **Package Management**: Manage and install packages according to your needs for your projects thanks to vcpkg. You can explicitly request packages using the `// @vcpkg <package>` directive in your source code.
 - **Automatic Dependency Handling**: When installing extensions, all of their dependencies are downloaded automatically for you.
 - **Full DLL Support**: Cmpile fully supports DLL files, allowing you to compile projects that rely on dynamic link libraries.
 - **Automatic Library Linking**: Cmpile automatically links fetched libraries when compiling executables, eliminating the need for manual configuration.
@@ -79,6 +87,7 @@ python cmpile.py main.cpp --compiler winlibs --compiler-flags "-O2 -Wall"
 - **CMake Support**: Cmpile supports CMake projects with the `--cmake` option.
 - **Multiple Compilers**: Cmpile supports multiple compilers allowing users to choose their compiler on first run.
 - **No Console Option**: Cmpile supports building GUI applications that don't open a terminal window with the `--no-console` option.
+- **Compile-Only Support**: Cmpile supports compiling projects without executing them with the `--no-run` option.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.
