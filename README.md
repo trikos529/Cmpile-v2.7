@@ -29,14 +29,14 @@ On the first run, Cmpile will:
 - `--compiler-flags "..."`: Pass extra flags to the compiler.
   - Example: `python cmpile.py main.cpp --compiler-flags "-O3 -Wall"`
 - `--clean`: Force a clean build (remove build artifacts).
-- `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg).
+- `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg). Use this when you want to completely refresh your toolchain.
 - `--dll`: Build a DLL instead of an executable.
 - `--cmake`: Build the project using CMake. Generates CMakeLists.txt if missing.
 - `--compiler`: Specify the compiler to use (llvm, winlibs, or auto).
 - `--no-console`: Build an application without a terminal window.
 - `--no-run`: Compile only, do not run the executable.
 - `--install-pkg <name>`: Manually install a vcpkg package by name.
-- `--fix`: Attempt to fix common compilation issues (clean build, reinstall tools, auto-fix errors).
+- `--fix`: Attempt to fix common compilation issues (clean build, check environment, auto-fix errors). This will only install missing tools, not force reinstallation of existing ones.
 - `-h, --help`: Show help message.
 
 ## How it Works
@@ -46,9 +46,9 @@ On the first run, Cmpile will:
 
 ## What's New
  # Version 2.18
- - Added a new flag `--fix` to automatically fix common compilation issues (clean build, reinstall tools, auto-fix errors).
+ - Added a new flag `--fix` to automatically fix common compilation issues (clean build, check environment, auto-fix errors). This will only install missing tools, not force reinstallation of existing ones.
  - Some flags now don't require files to be passed.
- - Improved `--reinstall-tools` flag behavior.
+ - Improved `--reinstall-tools` flag behavior to check for existing tools and provide better feedback.
  - Updated the GUI to support `--fix` via the "Compiler Flags" input.
  - Updated remaining dependencies to their latest versions.
  - Improved stability and performance.

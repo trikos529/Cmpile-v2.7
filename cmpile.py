@@ -423,10 +423,11 @@ class CmpileBuilder:
         """Attempt to fix common compilation issues."""
         self.log("Starting fix process...", "bold blue")
         
-        # 1. Environment Repair - Reinstall missing tools
+        # 1. Environment Repair - Check and repair missing tools
         self.log("Checking and repairing environment...", "bold blue")
         try:
-            vcpkg_mgr = ensure_environment(self.log, compiler_preference=compiler_preference, reinstall_tools=True)
+            # Only reinstall tools if they're actually missing
+            vcpkg_mgr = ensure_environment(self.log, compiler_preference=compiler_preference, reinstall_tools=False)
         except Exception as e:
             self.log(f"Environment repair failed: {e}", "bold red")
             return False
@@ -1164,7 +1165,8 @@ def main():
         if not args.files:
             ui.display_status("Fixing environment...")
             try:
-                vcpkg_mgr = ensure_environment(cli_logger, reinstall_tools=True)
+                # Only reinstall tools if they're actually missing
+                vcpkg_mgr = ensure_environment(cli_logger, reinstall_tools=False)
                 ui.display_success("Environment fixed successfully!")
             except Exception as e:
                 ui.display_error(f"Failed to fix environment: {e}")

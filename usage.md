@@ -52,11 +52,11 @@ python cmpile.py <files> [options]
 *   `--cmake`: Use CMake build system.
 *   `--dll`: Build as a shared library.
 *   `--clean`: Force a clean build (remove build artifacts).
-*   `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg, etc).
+*   `--reinstall-tools`: Force re-installation of internal tools (compilers, git, vcpkg, etc). Use this when you want to completely refresh your toolchain.
 *   `--no-console`: Build a GUI application that doesn't open a terminal window.
 *   `--no-run`: Compile only, do not run the executable.
 *   `--install-pkg <name>`: Manually install a vcpkg package by name.
-*   `--fix`: Attempt to fix common compilation issues (clean build, reinstall tools, auto-fix errors).
+*   `--fix`: Attempt to fix common compilation issues (clean build, check environment, auto-fix errors). This will only install missing tools, not force reinstallation of existing ones.
 
 **Examples:**
 ```bash
@@ -73,10 +73,10 @@ python cmpile.py main.cpp --no-run
 python cmpile.py main.cpp --install-pkg sqlite3
 
 # File-independent operations (no source files required):
-# Reinstall all internal tools (compilers, git, vcpkg, cmake)
+# Reinstall all internal tools (compilers, git, vcpkg, cmake) - forces complete refresh
 python cmpile.py --reinstall-tools
 
-# Fix environment issues without compiling files
+# Fix environment issues without compiling files - only installs missing tools
 python cmpile.py --fix
 
 # Set compiler preference without compiling files
@@ -99,8 +99,8 @@ python cmpile.py --compiler llvm
 - **Multiple Compilers**: Cmpile supports multiple compilers allowing users to choose their compiler on first run.
 - **No Console Option**: Cmpile supports building GUI applications that don't open a terminal window with the `--no-console` option.
 - **Compile-Only Support**: Cmpile supports compiling projects without executing them with the `--no-run` option.
-- **Auto-Fix Support**: Cmpile supports automatically fixing common compilation issues with the `--fix` option (clean build, reinstall tools, auto-fix errors).
-- **Easy Reinstall**: Cmpile allows easily reinstalling internal tools with the `--reinstall-tools` option.
+- **Auto-Fix Support**: Cmpile supports automatically fixing common compilation issues with the `--fix` option (clean build, check environment, auto-fix errors). This will only install missing tools, not force reinstallation of existing ones.
+- **Easy Reinstall**: Cmpile allows easily reinstalling internal tools with the `--reinstall-tools` option, which forces a complete refresh of all tools.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.
