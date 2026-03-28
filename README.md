@@ -36,6 +36,7 @@ On the first run, Cmpile will:
 - `--no-console`: Build an application without a terminal window.
 - `--no-run`: Compile only, do not run the executable.
 - `--install-pkg <name>`: Manually install a vcpkg package by name.
+- `--fix`: Attempt to fix common compilation issues (clean build, reinstall tools, auto-fix errors).
 - `-h, --help`: Show help message.
 
 ## How it Works
@@ -44,11 +45,20 @@ On the first run, Cmpile will:
 - **Dependencies**: The tool scans your C++ file for headers. If it sees a known header (like `fmt/core.h` or `nlohmann/json.hpp`), it installs the corresponding package via vcpkg. You can also use the `// @vcpkg <package>` directive in your source code to explicitly request a package.
 
 ## What's New
+ # Version 2.18
+ - Added a new flag `--fix` to automatically fix common compilation issues (clean build, reinstall tools, auto-fix errors).
+ - Some flags now don't require files to be passed.
+ - Improved `--reinstall-tools` flag behavior.
+ - Updated the GUI to support `--fix` via the "Compiler Flags" input.
+ - Updated remaining dependencies to their latest versions.
+ - Improved stability and performance.
+ - Fixed some known issues with environment checking.
+ - Rebranded to Version 2.18.
  # Version 2.17
  - Added support for explicit vcpkg package installation via the `// @vcpkg <package>` directive in source code.
  - Added a new CLI flag `--install-pkg <name>` to manually install vcpkg packages.
  - Added a new flag `--no-run` to compile the project without executing it.
- - Updated the GUI to support `--no-run` and `--install-pkg` via the "Compiler Flags" input.
+ - Updated the GUI to support `--no-run`, `--install-pkg` via the "Compiler Flags" input.
  - Updated dependencies to their latest versions.
  - Rebranded to Version 2.17.
  # Version 2.16

@@ -9,7 +9,17 @@ console = Console()
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description=f"Cmpile V{version.VERSION} - Compile and Run C/C++ code with ease.")
-    parser.add_argument("files", nargs='+', help="The C or C++ files or folders to compile and run.")
+    
+    # Check if any file-independent flags are present
+    file_independent_flags = ['--reinstall-tools', '--fix', '--compiler', '--help', '-h']
+    has_file_independent_flag = any(flag in sys.argv for flag in file_independent_flags)
+    
+    # Make files optional if file-independent flags are present
+    if has_file_independent_flag:
+        parser.add_argument("files", nargs='*', help="The C/C++ files or folders to compile and run.")
+    else:
+        parser.add_argument("files", nargs='+', help="The C/C++ files or folders to compile and run.")
+    
     parser.add_argument("--compiler-flags", help="Additional compiler flags (quoted string).", default="")
     parser.add_argument("--clean", action="store_true", help="Force clean build (remove build artifacts).")
     parser.add_argument("--reinstall-tools", action="store_true", help="Force re-installation of internal tools (compilers, git, etc).")
@@ -19,6 +29,7 @@ def parse_arguments():
     parser.add_argument("--install-pkg", action="append", help="Install a vcpkg package by name. Can be used multiple times.")
     parser.add_argument("--cmake", action="store_true", help="Use CMake to build the project.")
     parser.add_argument("--compiler", choices=['llvm', 'winlibs', 'auto'], default=None, help="Specify compiler preference (llvm or winlibs).")
+    parser.add_argument("--fix", action="store_true", help="Attempt to fix common compilation issues (clean build, reinstall tools, auto-fix errors).")
     return parser.parse_args()
 
 def get_compiler_choice(log_func=None):

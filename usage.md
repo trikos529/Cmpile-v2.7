@@ -32,7 +32,7 @@ Using Cmpile is straightforward. Follow these steps to compile your project:
 4.  **Monitor Progress**:
     *   The **Output Window** displays real-time logs.
     *   Any errors or warnings will be highlighted for easy debugging.
-    *   Missing dependencies (detected via `#include`) will be automatically installed via `vcpkg`.
+    *   Missing dependencies (detected via `#include` or `// @vcpkg`) will be automatically installed via `vcpkg`.
 
 5.  **Run**:
     *   Upon success, the executable will be run automatically (unless it's a DLL build).
@@ -56,6 +56,7 @@ python cmpile.py <files> [options]
 *   `--no-console`: Build a GUI application that doesn't open a terminal window.
 *   `--no-run`: Compile only, do not run the executable.
 *   `--install-pkg <name>`: Manually install a vcpkg package by name.
+*   `--fix`: Attempt to fix common compilation issues (clean build, reinstall tools, auto-fix errors).
 
 **Examples:**
 ```bash
@@ -70,6 +71,16 @@ python cmpile.py main.cpp --no-run
 
 # Install a vcpkg package manually
 python cmpile.py main.cpp --install-pkg sqlite3
+
+# File-independent operations (no source files required):
+# Reinstall all internal tools (compilers, git, vcpkg, cmake)
+python cmpile.py --reinstall-tools
+
+# Fix environment issues without compiling files
+python cmpile.py --fix
+
+# Set compiler preference without compiling files
+python cmpile.py --compiler llvm
 ```
 
 ## Features
@@ -88,6 +99,8 @@ python cmpile.py main.cpp --install-pkg sqlite3
 - **Multiple Compilers**: Cmpile supports multiple compilers allowing users to choose their compiler on first run.
 - **No Console Option**: Cmpile supports building GUI applications that don't open a terminal window with the `--no-console` option.
 - **Compile-Only Support**: Cmpile supports compiling projects without executing them with the `--no-run` option.
+- **Auto-Fix Support**: Cmpile supports automatically fixing common compilation issues with the `--fix` option (clean build, reinstall tools, auto-fix errors).
+- **Easy Reinstall**: Cmpile allows easily reinstalling internal tools with the `--reinstall-tools` option.
 
 ## Support
 If you ever enounter any issues or have questions about Cmpile, you can open an issue on our GitHub repository. We are here to help and support you in any way we can.

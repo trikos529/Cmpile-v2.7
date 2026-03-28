@@ -503,9 +503,10 @@ class App(ctk.CTk):
         dll_from_text = "--dll" in raw_flags
         cmake_from_text = "--cmake" in raw_flags
         no_run_from_text = "--no-run" in raw_flags
+        fix_from_text = "--fix" in raw_flags
 
         # Remove internal flags so they don't break the compiler
-        flags = raw_flags.replace("--clean", "").replace("--reinstall-tools", "").replace("--dll", "").replace("--cmake", "").replace("--no-run", "").strip()
+        flags = raw_flags.replace("--clean", "").replace("--reinstall-tools", "").replace("--dll", "").replace("--cmake", "").replace("--no-run", "").replace("--fix", "").strip()
 
         # Combine with checkboxes
         clean = (self.clean_checkbox.get() == 1) or clean_from_text
@@ -513,6 +514,7 @@ class App(ctk.CTk):
         build_dll = (self.dll_checkbox.get() == 1) or dll_from_text
         use_cmake = (self.cmake_checkbox.get() == 1) or cmake_from_text
         no_run = no_run_from_text
+        fix_issues = fix_from_text
         
         # Check for --install-pkg in raw_flags
         extra_packages = []
@@ -540,10 +542,10 @@ class App(ctk.CTk):
         self.log_textbox.delete("0.0", "end")
         self.log_textbox.configure(state="disabled")
 
-        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages))
+        thread = threading.Thread(target=self.run_build_process, args=(flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages, fix_issues))
         thread.start()
 
-    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages):
+    def run_build_process(self, flags, clean, build_dll, use_cmake, compiler_pref, reinstall, no_run, extra_packages, fix_issues):
         try:
             # Gather extensions info
             ext_includes = []
@@ -559,22 +561,37 @@ class App(ctk.CTk):
                     if lib: ext_libs.append(lib)
                     if lnk: ext_flags.extend(lnk)
             
-            # Pass these to builder
-            self.builder.build_and_run(
-                self.source_files, 
-                compiler_flags=flags, 
-                clean=clean, 
-                run=not no_run,
-                extra_includes=ext_includes,
-                extra_lib_paths=ext_libs,
-                extra_link_flags=ext_flags,
-                extra_packages=extra_packages,
-                build_dll=build_dll,
-                no_console=self.no_console_checkbox.get() == 1,
-                use_cmake=use_cmake,
-                compiler_preference=compiler_pref,
-                reinstall_tools=reinstall
-            )
+            if fix_issues:
+                # Use fix_issues method instead of build_and_run
+                self.builder.fix_issues(
+                    self.source_files,
+                    compiler_flags=flags,
+                    extra_includes=ext_includes,
+                    extra_lib_paths=ext_libs,
+                    extra_link_flags=ext_flags,
+                    extra_packages=extra_packages,
+                    build_dll=build_dll,
+                    no_console=self.no_console_checkbox.get() == 1,
+                    use_cmake=use_cmake,
+                    compiler_preference=compiler_pref
+                )
+            else:
+                # Pass these to builder
+                self.builder.build_and_run(
+                    self.source_files, 
+                    compiler_flags=flags, 
+                    clean=clean, 
+                    run=not no_run,
+                    extra_includes=ext_includes,
+                    extra_lib_paths=ext_libs,
+                    extra_link_flags=ext_flags,
+                    extra_packages=extra_packages,
+                    build_dll=build_dll,
+                    no_console=self.no_console_checkbox.get() == 1,
+                    use_cmake=use_cmake,
+                    compiler_preference=compiler_pref,
+                    reinstall_tools=reinstall
+                )
         except Exception as e:
             self.log_message(f"A critical error occurred: {e}", "error")
         finally:
